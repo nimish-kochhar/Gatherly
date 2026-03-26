@@ -12,23 +12,24 @@ const io = createSocketServer(server);
 registerSockets(io);
 
 async function start() {
+  // Try to connect to DB, but start the server regardless
   try {
     await sequelize.authenticate();
     console.log('[DB] Connected to MySQL');
 
-    // Sync models in dev (use migrations in production)
     if (config.nodeEnv === 'development') {
       await sequelize.sync({ alter: true });
       console.log('[DB] Models synced');
     }
-
-    server.listen(config.port, () => {
-      console.log(`[Server] Running on http://localhost:${config.port}`);
-    });
   } catch (err) {
-    console.error('[Server] Failed to start:', err);
-    process.exit(1);
+    console.warn('[DB] Could not connect to MySQL — running without database.');
+    console.warn('[DB] Start MySQL or run: docker compose up -d');
+    console.warn('[DB] Error:', err.message);
   }
+
+  server.listen(config.port, () => {
+    console.log(`[Server] Running on http://localhost:${config.port}`);
+  });
 }
 
 start();

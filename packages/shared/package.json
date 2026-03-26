@@ -1,0 +1,11 @@
+{
+  "name": "@gatherly/shared",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Shared constants for Gatherly client and server",
+  "main": "constants/index.js",
+  "exports": {
+    "./constants": "./constants/index.js",
+    "./constants/*": "./constants/*"
+  }
+}

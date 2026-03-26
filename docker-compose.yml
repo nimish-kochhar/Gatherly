@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: gatherly-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: gatherly
+      MYSQL_USER: gatherly_user
+      MYSQL_PASSWORD: gatherly_pass
+    ports:
+      - '3306:3306'
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  redis:
+    image: redis:7-alpine
+    container_name: gatherly-redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.6
+    container_name: gatherly-meilisearch
+    restart: unless-stopped
+    environment:
+      MEILI_MASTER_KEY: gatherly_meili_key
+    ports:
+      - '7700:7700'
+    volumes:
+      - meili_data:/meili_data
+
+volumes:
+  mysql_data:
+  meili_data:

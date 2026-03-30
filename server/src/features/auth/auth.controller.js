@@ -39,6 +39,6 @@ export const logout = catchAsync(async (_req, res) => {
 });
 
 export const me = catchAsync(async (req, res) => {
-  // TODO: requires authenticate middleware
-  res.json({ user: req.user });
+  const user = await authService.getCurrentUser(req.user.userId);
+  res.json({ user });
 });

@@ -2,24 +2,55 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import config from '../../config/index.js';
 import { AppError } from '../../utils/AppError.js';
+import User from '../user/user.model.js';
 
-// TODO: Import User model once created
-// import User from '../user/user.model.js';
+const SALT_ROUNDS = 12;
 
 /**
  * Register a new user.
  */
 export async function register({ username, email, password }) {
-  // TODO: Check if user exists, hash password, create user, generate tokens
-  throw new AppError('Not implemented', 501);
+  // Check for existing user
+  const existing = await User.findOne({ where: { email } });
+  if (existing) throw new AppError('Email already in use', 409);
+
+  const existingUsername = await User.findOne({ where: { username } });
+  if (existingUsername) throw new AppError('Username already taken', 409);
+
+  const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+
+  const user = await User.create({
+    username,
+    email,
+    password: hashedPassword,
+  });
+
+  const { accessToken, refreshToken } = generateTokenPair(user.id);
+
+  return {
+    user: sanitizeUser(user),
+    accessToken,
+    refreshToken,
+  };
 }
 
 /**
  * Login with email + password.
  */
 export async function login({ email, password }) {
-  // TODO: Find user, compare password, generate tokens
-  throw new AppError('Not implemented', 501);
+  const user = await User.findOne({ where: { email } });
+  if (!user) throw new AppError('Invalid email or password', 401);
+
+  const isMatch = await bcrypt.compare(password, user.password);
+  if (!isMatch) throw new AppError('Invalid email or password', 401);
+
+  const { accessToken, refreshToken } = generateTokenPair(user.id);
+
+  return {
+    user: sanitizeUser(user),
+    accessToken,
+    refreshToken,
+  };
 }
 
 /**
@@ -47,4 +78,21 @@ export async function refreshAccessToken(token) {
   });
 
   return { accessToken };
+}
+
+/**
+ * Get current user by ID (for /me endpoint).
+ */
+export async function getCurrentUser(userId) {
+  const user = await User.findByPk(userId);
+  if (!user) throw new AppError('User not found', 404);
+  return sanitizeUser(user);
+}
+
+/**
+ * Strip password from user object before sending to client.
+ */
+function sanitizeUser(user) {
+  const { password, ...rest } = user.toJSON();
+  return rest;
 }

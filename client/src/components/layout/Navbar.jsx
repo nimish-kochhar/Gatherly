@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Avatar } from '../common';
 import { ThemeContext } from '../../context/ThemeContext.jsx';
+import useAuth from '../../hooks/useAuth.js';
 
 /**
  * Navbar — Top navigation bar visible on every authenticated page.
@@ -18,6 +19,7 @@ export default function Navbar() {
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
   const { isDark, toggleTheme } = useContext(ThemeContext);
+  const { user, logout } = useAuth();
 
   // --- Close dropdown when clicking outside ---
   useEffect(() => {
@@ -134,7 +136,7 @@ export default function Navbar() {
               onClick={() => setDropdownOpen(!dropdownOpen)}
               className="interactive rounded-full"
             >
-              <Avatar name="Demo User" size="sm" status="online" />
+              <Avatar name={user?.username || 'User'} size="sm" status="online" />
             </button>
 
             {/* Dropdown menu */}
@@ -142,13 +144,13 @@ export default function Navbar() {
               <div className="absolute right-0 mt-2 w-56 py-2 bg-white dark:bg-surface-850 border border-gray-200 dark:border-surface-700 rounded-xl shadow-xl animate-fade-in-down z-50">
                 {/* User info */}
                 <div className="px-4 py-2 border-b border-gray-200 dark:border-surface-700">
-                  <p className="text-sm font-medium">Demo User</p>
-                  <p className="text-xs text-secondary">@demouser</p>
+                  <p className="text-sm font-medium">{user?.username || 'User'}</p>
+                  <p className="text-xs text-secondary">@{user?.username || 'user'}</p>
                 </div>
 
                 <div className="py-1">
                   <Link
-                    to="/profile/demouser"
+                    to={`/profile/${user?.username || 'me'}`}
                     className="flex items-center gap-3 px-4 py-2 text-sm text-surface-600 dark:text-surface-300 hover:bg-gray-100 dark:hover:bg-surface-800 hover:text-surface-900 dark:hover:text-surface-100 no-underline"
                     onClick={() => setDropdownOpen(false)}
                   >
@@ -173,7 +175,7 @@ export default function Navbar() {
                 <div className="border-t border-gray-200 dark:border-surface-700 pt-1">
                   <button
                     className="flex items-center gap-3 w-full px-4 py-2 text-sm text-danger-400 hover:bg-gray-100 dark:hover:bg-surface-800"
-                    onClick={() => setDropdownOpen(false)}
+                    onClick={() => { setDropdownOpen(false); logout(); navigate('/'); }}
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />

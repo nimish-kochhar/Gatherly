@@ -2,6 +2,7 @@ import http from 'http';
 import app from './app.js';
 import config from './config/index.js';
 import sequelize from './config/db.js';
+import { setupAssociations } from './db/associations.js';
 import { createSocketServer } from './config/socket.js';
 import { registerSockets } from './sockets/index.js';
 
@@ -10,6 +11,9 @@ const io = createSocketServer(server);
 
 // Register Socket.IO event handlers
 registerSockets(io);
+
+// Setup model associations
+setupAssociations();
 
 async function start() {
   // Try to connect to DB, but start the server regardless

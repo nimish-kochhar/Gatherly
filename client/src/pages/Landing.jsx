@@ -2,6 +2,7 @@ import { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/common';
 import { ThemeContext } from '../context/ThemeContext.jsx';
+import useAuth from '../hooks/useAuth.js';
 
 /**
  * Landing — Auth/marketing page (the first thing users see at "/").
@@ -21,8 +22,10 @@ import { ThemeContext } from '../context/ThemeContext.jsx';
 export default function Landing() {
   const [activeTab, setActiveTab] = useState('login');
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
   const { isDark, toggleTheme } = useContext(ThemeContext);
+  const { login, register, isAuthenticated } = useAuth();
 
   // --- Form state ---
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
@@ -33,24 +36,47 @@ export default function Landing() {
     confirmPassword: '',
   });
 
-  // --- Mock login handler (will connect to API later) ---
-  const handleLogin = (e) => {
+  // Redirect if already authenticated
+  if (isAuthenticated) {
+    navigate('/home', { replace: true });
+  }
+
+  // --- Login handler ---
+  const handleLogin = async (e) => {
     e.preventDefault();
+    setError('');
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      await login({ email: loginForm.email, password: loginForm.password });
       navigate('/home');
-    }, 1000);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Login failed. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  // --- Mock register handler ---
-  const handleRegister = (e) => {
+  // --- Register handler ---
+  const handleRegister = async (e) => {
     e.preventDefault();
+    setError('');
+    if (registerForm.password !== registerForm.confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      await register({
+        username: registerForm.username,
+        email: registerForm.email,
+        password: registerForm.password,
+      });
       navigate('/home');
-    }, 1000);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Registration failed. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // -- Features for hero section --
@@ -176,7 +202,7 @@ export default function Landing() {
           {/* ── Tab switcher ── */}
           <div className="flex bg-gray-200 dark:bg-surface-800 rounded-xl p-1 mb-6">
             <button
-              onClick={() => setActiveTab('login')}
+              onClick={() => { setActiveTab('login'); setError(''); }}
               className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${
                 activeTab === 'login'
                   ? 'bg-white dark:bg-surface-700 text-surface-900 dark:text-surface-100 shadow-sm'
@@ -186,7 +212,7 @@ export default function Landing() {
               Sign In
             </button>
             <button
-              onClick={() => setActiveTab('register')}
+              onClick={() => { setActiveTab('register'); setError(''); }}
               className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${
                 activeTab === 'register'
                   ? 'bg-white dark:bg-surface-700 text-surface-900 dark:text-surface-100 shadow-sm'
@@ -196,6 +222,13 @@ export default function Landing() {
               Sign Up
             </button>
           </div>
+
+          {/* ── Error message ── */}
+          {error && (
+            <div className="mb-4 p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-sm animate-fade-in">
+              {error}
+            </div>
+          )}
 
           {/* ── Login form ── */}
           {activeTab === 'login' && (

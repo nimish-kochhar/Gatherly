@@ -1,26 +1,55 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import PostCard from '../components/PostCard.jsx';
-import { MOCK_POSTS, MOCK_COMMUNITIES, formatCount } from '../data/mockData.js';
+import { postService } from '../services/post.service.js';
+import { MOCK_COMMUNITIES, formatCount } from '../data/mockData.js';
 
 /**
  * Home — The main feed page at /home.
  *
- * Layout:
- *   ┌─────────────────────────────────────────┐
- *   │ Sort tabs: Hot | New | Top              │
- *   ├──────────────────────┬──────────────────┤
- *   │                      │  Trending widget │
- *   │  Post feed (cards)   │  + Top commun.   │
- *   │                      │                  │
- *   └──────────────────────┴──────────────────┘
+ * Fetches posts from the backend API. Falls back to an empty state
+ * if the backend isn't available or returns no posts.
  *
- * The sort tabs don't actually re-sort yet (no API), but the UI is ready.
- * The right sidebar widget shows trending communities — it's only visible
- * on xl screens and above.
+ * The right sidebar widget still uses MOCK_COMMUNITIES until
+ * a communities API endpoint is built.
  */
 export default function Home() {
   const [sortBy, setSortBy] = useState('hot');
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    fetchPosts();
+  }, [sortBy]);
+
+  async function fetchPosts() {
+    setLoading(true);
+    setError(null);
+    try {
+      const { data } = await postService.list({ sort: sortBy, limit: 20, offset: 0 });
+      // Normalize backend response to match PostCard expected shape
+      const normalized = (data.posts || []).map((p) => ({
+        id: p.id,
+        title: p.title,
+        content: p.body || '',
+        author: p.author || { id: 0, username: 'unknown' },
+        community: p.community || { id: 0, name: 'General', slug: 'general' },
+        upvotes: p.upvotes || 0,
+        downvotes: p.downvotes || 0,
+        commentCount: p.commentCount || 0,
+        createdAt: p.createdAt,
+        image: null,
+      }));
+      setPosts(normalized);
+    } catch (err) {
+      console.error('Failed to fetch posts:', err);
+      setError('Could not load posts. The server may be unavailable.');
+      setPosts([]);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   const sortTabs = [
     { key: 'hot', label: 'Hot', icon: '🔥' },
@@ -75,7 +104,34 @@ export default function Home() {
 
         {/* Post feed */}
         <div className="space-y-3">
-          {MOCK_POSTS.map((post) => (
+          {loading && (
+            <div className="card p-8 text-center">
+              <div className="inline-block w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full animate-spin mb-3" />
+              <p className="text-sm text-surface-500">Loading posts...</p>
+            </div>
+          )}
+
+          {error && !loading && (
+            <div className="card p-6 text-center">
+              <p className="text-sm text-surface-500 mb-3">{error}</p>
+              <button
+                onClick={fetchPosts}
+                className="text-sm text-primary-500 hover:text-primary-400 font-medium"
+              >
+                Try again
+              </button>
+            </div>
+          )}
+
+          {!loading && !error && posts.length === 0 && (
+            <div className="card p-8 text-center">
+              <p className="text-lg mb-1">🌱</p>
+              <p className="text-sm font-medium text-surface-700 dark:text-surface-300">No posts yet</p>
+              <p className="text-xs text-surface-500 mt-1">Be the first to share something!</p>
+            </div>
+          )}
+
+          {!loading && posts.map((post) => (
             <PostCard key={post.id} post={post} />
           ))}
         </div>

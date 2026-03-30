@@ -29,7 +29,7 @@ export default function Notifications() {
             No notifications
           </h2>
           <p className="text-sm text-surface-500 max-w-sm">
-            When someone interacts with your posts, comments, or communities, you'll see notifications here.
+            When someone interacts with your posts, comments, or communities, you&apos;ll see notifications here.
           </p>
         </div>
       ) : (

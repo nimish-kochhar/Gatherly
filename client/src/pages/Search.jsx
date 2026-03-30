@@ -3,7 +3,7 @@ import { useSearchParams, Link } from 'react-router-dom';
 import PostCard from '../components/PostCard.jsx';
 import CommunityCard from '../components/CommunityCard.jsx';
 import { Avatar } from '../components/common';
-import { MOCK_POSTS, MOCK_COMMUNITIES, MOCK_USER } from '../data/mockData.js';
+import { MOCK_POSTS, MOCK_COMMUNITIES } from '../data/mockData.js';
 
 /**
  * Search — Full search page at /search.
@@ -56,17 +56,13 @@ export default function Search() {
   );
 
   // Mock user results
+  const mockUsers = [
+    { id: 10, username: 'sarahdev', bio: 'React enthusiast & open-source contributor' },
+    { id: 11, username: 'coderebel', bio: 'Full-stack developer, JS lover' },
+    { id: 12, username: 'pixelperfect', bio: 'UI/UX designer creating beautiful interfaces' },
+  ];
   const userResults = useMemo(
-    () =>
-      q && MOCK_USER.username.toLowerCase().includes(q)
-        ? [MOCK_USER]
-        : q
-        ? [
-            { id: 10, username: 'sarahdev', bio: 'React enthusiast & open-source contributor' },
-            { id: 11, username: 'coderebel', bio: 'Full-stack developer, JS lover' },
-            { id: 12, username: 'pixelperfect', bio: 'UI/UX designer creating beautiful interfaces' },
-          ].filter((u) => u.username.toLowerCase().includes(q))
-        : [],
+    () => (q ? mockUsers.filter((u) => u.username.toLowerCase().includes(q)) : []),
     [q]
   );
 

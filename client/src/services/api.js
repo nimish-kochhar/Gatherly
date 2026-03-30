@@ -10,15 +10,12 @@ const api = axios.create({
  * We use a module-level getter so the interceptor always reads fresh state.
  */
 let getAccessToken = () => null;
-let onTokenRefreshed = () => {};
 
 export function setTokenAccessor(getter) {
   getAccessToken = getter;
 }
 
-export function setTokenRefreshedCallback(callback) {
-  onTokenRefreshedCallback = callback;
-}
+
 
 // Request interceptor — attach access token
 api.interceptors.request.use((config) => {

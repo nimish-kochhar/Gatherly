@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Avatar } from '../components/common';
 import PostCard from '../components/PostCard.jsx';
-import { MOCK_USER, MOCK_POSTS, MOCK_COMMUNITIES, formatCount, timeAgo } from '../data/mockData.js';
+import useAuth from '../hooks/useAuth.js';
+import { MOCK_POSTS, MOCK_COMMUNITIES, formatCount } from '../data/mockData.js';
 
 /**
  * Profile — User profile page at /profile/:username.
@@ -21,10 +22,17 @@ import { MOCK_USER, MOCK_POSTS, MOCK_COMMUNITIES, formatCount, timeAgo } from '.
 export default function Profile() {
   const { username } = useParams();
   const [activeTab, setActiveTab] = useState('posts');
+  const { user: currentUser } = useAuth();
 
-  // Mock: use MOCK_USER for any profile
-  const user = { ...MOCK_USER, username: username || MOCK_USER.username };
-  const userPosts = MOCK_POSTS.filter((p) => p.author.username === username);
+  // Use the route param as the profile username
+  const profileUsername = username || currentUser?.username || 'unknown';
+  const user = {
+    username: profileUsername,
+    bio: currentUser?.username === profileUsername ? (currentUser?.bio || '') : '',
+    createdAt: currentUser?.username === profileUsername ? (currentUser?.createdAt || new Date().toISOString()) : new Date().toISOString(),
+    karma: currentUser?.username === profileUsername ? (currentUser?.karma || 0) : 0,
+  };
+  const userPosts = MOCK_POSTS.filter((p) => p.author.username === profileUsername);
 
   const stats = [
     { label: 'Posts', value: userPosts.length || 12 },
@@ -54,7 +62,7 @@ export default function Profile() {
               </div>
 
               {/* Edit profile button (only for own profile) */}
-              {user.username === MOCK_USER.username && (
+              {currentUser && user.username === currentUser.username && (
                 <Link
                   to="/settings"
                   className="px-4 py-1.5 rounded-lg border border-gray-300 dark:border-surface-600 text-sm font-medium text-surface-700 dark:text-surface-300 hover:bg-gray-100 dark:hover:bg-surface-800 transition-colors no-underline"

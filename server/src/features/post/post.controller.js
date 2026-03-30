@@ -21,7 +21,9 @@ export const list = catchAsync(async (req, res) => {
         downvotes: post.downvotes,
         commentCount: 0, // TODO: count from comments table
         createdAt: post.createdAt,
-        author: post.author || { id: post.userId, username: 'unknown' },
+        author: post.author
+          ? { id: post.author.id, username: post.author.username }
+          : { id: post.userId || 0, username: 'unknown' },
         community: post.Community
           ? { id: post.Community.id, name: post.Community.name, slug: post.Community.slug }
           : null,

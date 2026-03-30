@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Button, Avatar } from '../components/common';
-import { MOCK_USER } from '../data/mockData.js';
+import useAuth from '../hooks/useAuth.js';
 
 /**
  * Settings — User settings page at /settings.
@@ -13,13 +13,14 @@ import { MOCK_USER } from '../data/mockData.js';
  * All saves are mock (no API yet). Shows success toast on save.
  */
 export default function Settings() {
+  const { user } = useAuth();
   const [saved, setSaved] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const [profile, setProfile] = useState({
-    username: MOCK_USER.username,
-    email: MOCK_USER.email,
-    bio: MOCK_USER.bio,
+    username: user?.username || '',
+    email: user?.email || '',
+    bio: user?.bio || '',
   });
 
   const [prefs, setPrefs] = useState({

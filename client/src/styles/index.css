@@ -2,9 +2,161 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom global styles */
+/* ──────────────────────────────────────────────
+   BASE LAYER — Global resets & defaults
+   ────────────────────────────────────────────── */
 @layer base {
+  /* --- Color variables (light mode) --- */
+  :root {
+    --color-bg: 250 250 250;
+    --color-bg-secondary: 244 244 245;
+    --color-text: 24 24 27;
+    --color-text-secondary: 113 113 122;
+    --color-border: 228 228 231;
+    --color-card-bg: 255 255 255;
+  }
+
+  /* --- Color variables (dark mode) --- */
+  .dark {
+    --color-bg: 15 15 18;
+    --color-bg-secondary: 24 24 30;
+    --color-text: 240 240 243;
+    --color-text-secondary: 161 161 170;
+    --color-border: 63 63 70;
+    --color-card-bg: 30 30 36;
+  }
+
+  /* --- Body defaults --- */
   body {
-    @apply bg-gray-50 text-gray-900 antialiased;
+    @apply font-sans antialiased;
+    background-color: rgb(var(--color-bg));
+    color: rgb(var(--color-text));
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+
+  /* --- Smooth scrolling --- */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* --- Better focus rings for accessibility --- */
+  *:focus-visible {
+    @apply outline-2 outline-offset-2 outline-primary-500;
+  }
+
+  /* --- Links --- */
+  a {
+    @apply text-primary-500 transition-colors duration-150;
+  }
+  a:hover {
+    @apply text-primary-400;
+  }
+
+  /* --- Text selection --- */
+  ::selection {
+    @apply bg-primary-500/25 text-inherit;
+  }
+}
+
+/* ──────────────────────────────────────────────
+   COMPONENTS LAYER — Reusable class patterns
+   ────────────────────────────────────────────── */
+@layer components {
+  /* --- Card --- */
+  .card {
+    background-color: rgb(var(--color-card-bg));
+    border: 1px solid rgb(var(--color-border) / 0.5);
+    @apply rounded-xl shadow-card transition-all duration-200;
+  }
+  .dark .card {
+    @apply shadow-dark-card;
+  }
+  .card:hover {
+    @apply shadow-card-hover;
+  }
+  .dark .card:hover {
+    @apply shadow-dark-card-hover;
+  }
+
+  /* --- Divider --- */
+  .divider {
+    border-color: rgb(var(--color-border) / 0.5);
+    @apply border-t;
+  }
+
+  /* --- Skeleton loader shimmer --- */
+  .skeleton {
+    @apply rounded-md animate-shimmer;
+    background: linear-gradient(
+      90deg,
+      rgb(var(--color-border) / 0.2) 25%,
+      rgb(var(--color-border) / 0.4) 50%,
+      rgb(var(--color-border) / 0.2) 75%
+    );
+    background-size: 200% 100%;
+  }
+
+  /* --- Text helpers --- */
+  .text-secondary {
+    color: rgb(var(--color-text-secondary));
+  }
+
+  /* --- Interactive surface (buttons, list items) --- */
+  .interactive {
+    @apply transition-all duration-150 cursor-pointer;
+  }
+  .interactive:hover {
+    background-color: rgb(var(--color-border) / 0.15);
+  }
+  .interactive:active {
+    @apply scale-[0.98];
+  }
+}
+
+/* ──────────────────────────────────────────────
+   UTILITIES LAYER — One-off helpers
+   ────────────────────────────────────────────── */
+@layer utilities {
+  /* --- Custom scrollbar --- */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--color-border)) transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: rgb(var(--color-border));
+    border-radius: 3px;
+  }
+
+  /* --- Hide scrollbar --- */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* --- Line clamp (truncate multi-line text) --- */
+  .line-clamp-1 { -webkit-line-clamp: 1; }
+  .line-clamp-2 { -webkit-line-clamp: 2; }
+  .line-clamp-3 { -webkit-line-clamp: 3; }
+  .line-clamp-1,
+  .line-clamp-2,
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* --- Glass effect (for modals, overlays) --- */
+  .glass {
+    @apply backdrop-blur-md;
+    background-color: rgb(var(--color-card-bg) / 0.8);
   }
 }

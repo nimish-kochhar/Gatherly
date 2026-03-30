@@ -10,4 +10,5 @@ export { default as Profile } from './Profile.jsx';
 export { default as Chat } from './Chat.jsx';
 export { default as Search } from './Search.jsx';
 export { default as Settings } from './Settings.jsx';
+export { default as Notifications } from './Notifications.jsx';
 export { default as NotFound } from './NotFound.jsx';

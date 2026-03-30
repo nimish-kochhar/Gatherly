@@ -15,16 +15,16 @@ async function start() {
   // Try to connect to DB, but start the server regardless
   try {
     await sequelize.authenticate();
-    console.log('[DB] Connected to MySQL');
+    console.log(`[DB] Connected to mysql://${config.db.host}:${config.db.port}/${config.db.name} as ${config.db.user}`);
 
     if (config.nodeEnv === 'development') {
       await sequelize.sync({ alter: true });
       console.log('[DB] Models synced');
     }
   } catch (err) {
-    console.warn('[DB] Could not connect to MySQL — running without database.');
-    console.warn('[DB] Start MySQL or run: docker compose up -d');
-    console.warn('[DB] Error:', err.message);
+    console.error('[DB] Failed to connect to MySQL.');
+    console.error('[DB] Verify DB_HOST, DB_PORT, DB_NAME, DB_USER, and DB_PASSWORD in .env and ensure MySQL is running.');
+    console.error('[DB] Error details:', err.message);
   }
 
   server.listen(config.port, () => {

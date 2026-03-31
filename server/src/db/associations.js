@@ -27,4 +27,10 @@ export function setupAssociations() {
   Community.hasMany(Post, { foreignKey: 'communityId' });
   Community.belongsToMany(User, { through: Membership, foreignKey: 'communityId' });
   User.belongsToMany(Community, { through: Membership, foreignKey: 'userId' });
+
+  // --- Membership (direct associations for service queries) ---
+  Membership.belongsTo(Community, { foreignKey: 'communityId' });
+  Membership.belongsTo(User, { foreignKey: 'userId' });
+  Community.hasMany(Membership, { foreignKey: 'communityId' });
+  User.hasMany(Membership, { foreignKey: 'userId' });
 }

@@ -1,30 +1,38 @@
-import { useState } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { NavLink, Link } from 'react-router-dom';
+import { communityService } from '../../services/community.service.js';
+import { AuthContext } from '../../context/AuthContext.jsx';
 
 /**
  * Sidebar — Left navigation panel visible on authenticated pages.
  *
  * Contains:
  *   - Main nav links (Home, Explore, Popular) using NavLink for active highlighting
- *   - "Your Communities" section with collapsible community list
+ *   - "Your Communities" section — fetches from API when logged in
  *   - Create Community button
- *
- * NavLink vs Link:
- *   Link just navigates. NavLink automatically knows if its route is active
- *   and applies a special class — we use this to highlight the current page.
  */
-
-// Mock communities (replaced with real data when API is ready)
-const MOCK_COMMUNITIES = [
-  { id: 1, name: 'reactjs', slug: 'reactjs' },
-  { id: 2, name: 'javascript', slug: 'javascript' },
-  { id: 3, name: 'webdev', slug: 'webdev' },
-  { id: 4, name: 'design', slug: 'design' },
-  { id: 5, name: 'gaming', slug: 'gaming' },
-];
-
 export default function Sidebar() {
+  const auth = useContext(AuthContext);
   const [communitiesExpanded, setCommunitiesExpanded] = useState(true);
+  const [communities, setCommunities] = useState([]);
+
+  useEffect(() => {
+    if (auth?.isAuthenticated) {
+      fetchMyCommunities();
+    } else {
+      setCommunities([]);
+    }
+  }, [auth?.isAuthenticated]);
+
+  async function fetchMyCommunities() {
+    try {
+      const { data } = await communityService.myJoined();
+      setCommunities(data.communities || []);
+    } catch (err) {
+      console.error('Failed to fetch user communities:', err);
+      setCommunities([]);
+    }
+  }
 
   // Helper: style function for NavLink (active vs inactive)
   const navLinkClass = ({ isActive }) =>
@@ -90,19 +98,25 @@ export default function Sidebar() {
 
           {communitiesExpanded && (
             <nav className="space-y-0.5">
-              {MOCK_COMMUNITIES.map((community) => (
-                <NavLink
-                  key={community.id}
-                  to={`/c/${community.slug}`}
-                  className={navLinkClass}
-                >
-                  {/* Community icon (colored circle with first letter) */}
-                  <span className="h-6 w-6 rounded-full bg-gray-200 dark:bg-surface-700 flex items-center justify-center text-xs font-bold text-surface-600 dark:text-surface-300">
-                    {community.name[0].toUpperCase()}
-                  </span>
-                  <span className="truncate">g/{community.name}</span>
-                </NavLink>
-              ))}
+              {communities.length > 0 ? (
+                communities.map((community) => (
+                  <NavLink
+                    key={community.id}
+                    to={`/c/${community.slug}`}
+                    className={navLinkClass}
+                  >
+                    {/* Community icon (colored circle with first letter) */}
+                    <span className="h-6 w-6 rounded-full bg-gray-200 dark:bg-surface-700 flex items-center justify-center text-xs font-bold text-surface-600 dark:text-surface-300">
+                      {community.name[0].toUpperCase()}
+                    </span>
+                    <span className="truncate">g/{community.name}</span>
+                  </NavLink>
+                ))
+              ) : (
+                <p className="px-3 text-xs text-surface-500">
+                  {auth?.isAuthenticated ? 'No communities joined yet' : 'Sign in to see communities'}
+                </p>
+              )}
             </nav>
           )}
         </div>

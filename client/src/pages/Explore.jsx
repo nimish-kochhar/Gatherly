@@ -1,24 +1,53 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import CommunityCard from '../components/CommunityCard.jsx';
-import { MOCK_COMMUNITIES } from '../data/mockData.js';
+import { communityService } from '../services/community.service.js';
 
 /**
- * Explore — Browse all communities with search and category filter.
+ * Explore — Browse all communities with search filter.
  *
  * Layout:
  *   - Page header with description
  *   - Search bar to filter communities by name
  *   - Grid of CommunityCards (responsive: 1→2→3 columns)
+ *
+ * Fetches communities from the API with optional search.
  */
 export default function Explore() {
   const [search, setSearch] = useState('');
+  const [communities, setCommunities] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const filtered = MOCK_COMMUNITIES.filter(
-    (c) =>
-      c.name.toLowerCase().includes(search.toLowerCase()) ||
-      c.description.toLowerCase().includes(search.toLowerCase())
-  );
+  const fetchCommunities = useCallback(async (searchTerm) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const params = { limit: 50, offset: 0 };
+      if (searchTerm) params.search = searchTerm;
+      const { data } = await communityService.list(params);
+      setCommunities(data.communities || []);
+    } catch (err) {
+      console.error('Failed to fetch communities:', err);
+      setError('Could not load communities. The server may be unavailable.');
+      setCommunities([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Initial fetch
+  useEffect(() => {
+    fetchCommunities('');
+  }, [fetchCommunities]);
+
+  // Debounced search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchCommunities(search);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search, fetchCommunities]);
 
   return (
     <div>
@@ -51,17 +80,43 @@ export default function Explore() {
         />
       </div>
 
+      {/* Loading state */}
+      {loading && (
+        <div className="card p-8 text-center">
+          <div className="inline-block w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full animate-spin mb-3" />
+          <p className="text-sm text-surface-500">Loading communities...</p>
+        </div>
+      )}
+
+      {/* Error state */}
+      {error && !loading && (
+        <div className="card p-6 text-center">
+          <p className="text-sm text-surface-500 mb-3">{error}</p>
+          <button
+            onClick={() => fetchCommunities(search)}
+            className="text-sm text-primary-500 hover:text-primary-400 font-medium"
+          >
+            Try again
+          </button>
+        </div>
+      )}
+
       {/* Community grid */}
-      {filtered.length > 0 ? (
+      {!loading && !error && communities.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filtered.map((community) => (
+          {communities.map((community) => (
             <CommunityCard key={community.id} community={community} />
           ))}
         </div>
-      ) : (
+      )}
+
+      {/* Empty state */}
+      {!loading && !error && communities.length === 0 && (
         <div className="card p-12 text-center">
           <p className="text-surface-500 text-sm">
-            No communities found matching &ldquo;{search}&rdquo;
+            {search
+              ? <>No communities found matching &ldquo;{search}&rdquo;</>
+              : 'No communities yet. Be the first to create one!'}
           </p>
           <Link
             to="/create-community"

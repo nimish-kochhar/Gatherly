@@ -1,13 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/common';
-import { MOCK_COMMUNITIES } from '../data/mockData.js';
+import { communityService } from '../services/community.service.js';
+import { AuthContext } from '../context/AuthContext.jsx';
 
 /**
  * CreatePost — Post creation page at /create.
  *
  * Features:
- *   - Community selector dropdown
+ *   - Community selector dropdown (fetched from API)
  *   - Title input
  *   - Content type tabs: Text / Image / Link
  *   - Content editor (textarea or URL input)
@@ -16,14 +17,30 @@ import { MOCK_COMMUNITIES } from '../data/mockData.js';
  */
 export default function CreatePost() {
   const navigate = useNavigate();
+  const auth = useContext(AuthContext);
   const [isLoading, setIsLoading] = useState(false);
   const [contentType, setContentType] = useState('text');
+  const [communities, setCommunities] = useState([]);
   const [form, setForm] = useState({
     community: '',
     title: '',
     content: '',
     url: '',
   });
+
+  useEffect(() => {
+    fetchCommunities();
+  }, []);
+
+  async function fetchCommunities() {
+    try {
+      const { data } = await communityService.list({ limit: 100, offset: 0 });
+      setCommunities(data.communities || []);
+    } catch (err) {
+      console.error('Failed to fetch communities:', err);
+      setCommunities([]);
+    }
+  }
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -66,7 +83,7 @@ export default function CreatePost() {
             className={`${inputClass} cursor-pointer`}
           >
             <option value="">Choose a community</option>
-            {MOCK_COMMUNITIES.map((c) => (
+            {communities.map((c) => (
               <option key={c.id} value={c.slug}>
                 g/{c.name}
               </option>
@@ -174,7 +191,7 @@ export default function CreatePost() {
         {/* Actions */}
         <div className="flex items-center justify-between">
           <p className="text-xs text-surface-500">
-            Posting as <span className="font-semibold text-surface-700 dark:text-surface-300">demouser</span>
+            Posting as <span className="font-semibold text-surface-700 dark:text-surface-300">{auth?.user?.username || 'user'}</span>
           </p>
           <div className="flex gap-3">
             <Button

@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Avatar } from '../components/common';
 import PostCard from '../components/PostCard.jsx';
 import useAuth from '../hooks/useAuth.js';
-import { MOCK_POSTS, MOCK_COMMUNITIES, formatCount } from '../data/mockData.js';
+import { communityService } from '../services/community.service.js';
+import { MOCK_POSTS } from '../data/mockData.js';
 
 /**
  * Profile — User profile page at /profile/:username.
@@ -23,6 +24,7 @@ export default function Profile() {
   const { username } = useParams();
   const [activeTab, setActiveTab] = useState('posts');
   const { user: currentUser } = useAuth();
+  const [profileCommunities, setProfileCommunities] = useState([]);
 
   // Use the route param as the profile username
   const profileUsername = username || currentUser?.username || 'unknown';
@@ -32,6 +34,27 @@ export default function Profile() {
     createdAt: currentUser?.username === profileUsername ? (currentUser?.createdAt || new Date().toISOString()) : new Date().toISOString(),
     karma: currentUser?.username === profileUsername ? (currentUser?.karma || 0) : 0,
   };
+
+  useEffect(() => {
+    fetchCommunities();
+  }, []);
+
+  async function fetchCommunities() {
+    try {
+      const { data } = await communityService.list({ limit: 4, offset: 0 });
+      setProfileCommunities(data.communities || []);
+    } catch (err) {
+      console.error('Failed to fetch communities:', err);
+      setProfileCommunities([]);
+    }
+  }
+
+  function formatCount(num) {
+    if (!num) return '0';
+    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+    return num.toString();
+  }
   const userPosts = MOCK_POSTS.filter((p) => p.author.username === profileUsername);
 
   const stats = [
@@ -183,7 +206,7 @@ export default function Profile() {
               Communities
             </h3>
             <div className="space-y-2">
-              {MOCK_COMMUNITIES.slice(0, 4).map((c) => (
+              {profileCommunities.length > 0 ? profileCommunities.map((c) => (
                 <Link
                   key={c.id}
                   to={`/c/${c.slug}`}
@@ -196,7 +219,9 @@ export default function Profile() {
                     g/{c.name}
                   </span>
                 </Link>
-              ))}
+              )) : (
+                <p className="text-xs text-surface-500">No communities yet</p>
+              )}
             </div>
           </div>
         </div>

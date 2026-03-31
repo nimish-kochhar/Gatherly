@@ -1,43 +1,132 @@
-import { useState } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import PostCard from '../components/PostCard.jsx';
 import { Button } from '../components/common';
-import { MOCK_COMMUNITIES, MOCK_POSTS, formatCount } from '../data/mockData.js';
+import { communityService } from '../services/community.service.js';
+import { postService } from '../services/post.service.js';
+import { AuthContext } from '../context/AuthContext.jsx';
 
 /**
  * CommunityPage — The individual community page at /c/:slug.
  *
- * Layout:
- *   ┌─────────────────────────────────────┐
- *   │ Banner (gradient) + community info  │
- *   ├───────────────────┬─────────────────┤
- *   │ Sort tabs + posts │ About sidebar   │
- *   └───────────────────┴─────────────────┘
- *
- * Shows filtered posts for this community, community description,
- * member counts, and a "Create Post" button.
+ * Fetches community data and posts from the backend API.
+ * Supports join/leave functionality.
  */
 export default function CommunityPage() {
   const { slug } = useParams();
+  const auth = useContext(AuthContext);
   const [sortBy, setSortBy] = useState('hot');
+  const [community, setCommunity] = useState(null);
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [postsLoading, setPostsLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [joined, setJoined] = useState(false);
+  const [joinLoading, setJoinLoading] = useState(false);
 
-  const community = MOCK_COMMUNITIES.find((c) => c.slug === slug);
-  const communityPosts = MOCK_POSTS.filter(
-    (p) => p.community.slug === slug
-  );
-
-  // Gradient colors for banner based on community
-  const bannerColors = [
-    'from-primary-600 via-primary-700 to-primary-900',
-    'from-accent-500 via-accent-600 to-accent-800',
-    'from-success-500 via-success-600 to-success-800',
-    'from-danger-500 via-danger-600 to-danger-800',
-    'from-purple-500 via-purple-600 to-purple-800',
-    'from-pink-500 via-pink-600 to-pink-800',
+  // Gradient colors for banner based on community id
+  const bannerGradients = [
+    'linear-gradient(135deg, #6366f1, #4338ca, #312e81)',
+    'linear-gradient(135deg, #f59e0b, #d97706, #92400e)',
+    'linear-gradient(135deg, #10b981, #059669, #065f46)',
+    'linear-gradient(135deg, #ef4444, #dc2626, #991b1b)',
+    'linear-gradient(135deg, #8b5cf6, #7c3aed, #5b21b6)',
+    'linear-gradient(135deg, #ec4899, #db2777, #9d174d)',
   ];
 
-  if (!community) {
+  useEffect(() => {
+    fetchCommunity();
+  }, [slug]);
+
+  useEffect(() => {
+    if (community) {
+      fetchPosts();
+    }
+  }, [community?.id, sortBy]);
+
+  async function fetchCommunity() {
+    setLoading(true);
+    setError(null);
+    try {
+      const { data } = await communityService.getBySlug(slug);
+      setCommunity(data);
+      setJoined(data.isMember || false);
+    } catch (err) {
+      console.error('Failed to fetch community:', err);
+      setError(err.response?.status === 404 ? 'not_found' : 'error');
+      setCommunity(null);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function fetchPosts() {
+    setPostsLoading(true);
+    try {
+      const { data } = await postService.list({
+        sort: sortBy,
+        limit: 20,
+        offset: 0,
+        communityId: community.id,
+      });
+      const normalized = (data.posts || []).map((p) => ({
+        id: p.id,
+        title: p.title,
+        content: p.body || '',
+        author: p.author || { id: 0, username: 'unknown' },
+        community: p.community || { id: community.id, name: community.name, slug: community.slug },
+        upvotes: p.upvotes || 0,
+        downvotes: p.downvotes || 0,
+        commentCount: p.commentCount || 0,
+        createdAt: p.createdAt,
+        image: null,
+      }));
+      setPosts(normalized);
+    } catch (err) {
+      console.error('Failed to fetch community posts:', err);
+      setPosts([]);
+    } finally {
+      setPostsLoading(false);
+    }
+  }
+
+  async function handleJoinToggle() {
+    if (!auth?.isAuthenticated) return;
+    setJoinLoading(true);
+    try {
+      if (joined) {
+        await communityService.leave(community.id);
+        setJoined(false);
+        setCommunity((prev) => ({ ...prev, memberCount: (prev.memberCount || 1) - 1 }));
+      } else {
+        await communityService.join(community.id);
+        setJoined(true);
+        setCommunity((prev) => ({ ...prev, memberCount: (prev.memberCount || 0) + 1 }));
+      }
+    } catch (err) {
+      console.error('Join/leave failed:', err);
+    } finally {
+      setJoinLoading(false);
+    }
+  }
+
+  function formatCount(num) {
+    if (!num) return '0';
+    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+    return num.toString();
+  }
+
+  if (loading) {
+    return (
+      <div className="card p-12 text-center">
+        <div className="inline-block w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full animate-spin mb-3" />
+        <p className="text-sm text-surface-500">Loading community...</p>
+      </div>
+    );
+  }
+
+  if (error === 'not_found' || !community) {
     return (
       <div className="card p-12 text-center">
         <h2 className="text-xl font-bold mb-2">Community not found</h2>
@@ -51,12 +140,27 @@ export default function CommunityPage() {
     );
   }
 
-  const bannerColor = bannerColors[community.id % bannerColors.length];
+  if (error === 'error') {
+    return (
+      <div className="card p-12 text-center">
+        <h2 className="text-xl font-bold mb-2">Something went wrong</h2>
+        <p className="text-secondary text-sm mb-4">Could not load this community.</p>
+        <button onClick={fetchCommunity} className="text-primary-500 hover:text-primary-400 font-medium text-sm">
+          Try again
+        </button>
+      </div>
+    );
+  }
+
+  const gradient = bannerGradients[(community.id || 0) % bannerGradients.length];
 
   return (
     <div>
       {/* ── Banner ── */}
-      <div className={`-mx-6 -mt-6 mb-6 p-6 pb-8 bg-gradient-to-r ${bannerColor} relative overflow-hidden`}>
+      <div
+        className="-mx-6 -mt-6 mb-6 p-6 pb-8 relative overflow-hidden"
+        style={{ background: gradient }}
+      >
         {/* Decorative blob */}
         <div className="absolute right-0 top-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl" />
 
@@ -81,13 +185,16 @@ export default function CommunityPage() {
           </div>
 
           {/* Join / Joined button */}
-          <Button
-            variant={joined ? 'secondary' : 'primary'}
-            size="md"
-            onClick={() => setJoined(!joined)}
-          >
-            {joined ? '✓ Joined' : 'Join'}
-          </Button>
+          {auth?.isAuthenticated && (
+            <Button
+              variant={joined ? 'secondary' : 'primary'}
+              size="md"
+              onClick={handleJoinToggle}
+              loading={joinLoading}
+            >
+              {joined ? '✓ Joined' : 'Join'}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -123,9 +230,14 @@ export default function CommunityPage() {
           </Link>
 
           {/* Posts */}
-          {communityPosts.length > 0 ? (
+          {postsLoading ? (
+            <div className="card p-8 text-center">
+              <div className="inline-block w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full animate-spin mb-3" />
+              <p className="text-sm text-surface-500">Loading posts...</p>
+            </div>
+          ) : posts.length > 0 ? (
             <div className="space-y-3">
-              {communityPosts.map((post) => (
+              {posts.map((post) => (
                 <PostCard key={post.id} post={post} />
               ))}
             </div>
@@ -164,6 +276,17 @@ export default function CommunityPage() {
                   {new Date(community.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
                 </span>
               </div>
+              {community.creator && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-surface-500">Creator</span>
+                  <Link
+                    to={`/profile/${community.creator.username}`}
+                    className="font-semibold text-primary-500 hover:text-primary-400 no-underline"
+                  >
+                    {community.creator.username}
+                  </Link>
+                </div>
+              )}
             </div>
 
             <div className="border-t border-gray-200 dark:border-surface-700 pt-3">

@@ -1,5 +1,7 @@
+import { useState, useContext } from 'react';
 import { Link } from 'react-router-dom';
-import { formatCount } from '../data/mockData.js';
+import { communityService } from '../services/community.service.js';
+import { AuthContext } from '../context/AuthContext.jsx';
 
 /**
  * CommunityCard — Card for displaying a community in grid/list views (Explore, Popular).
@@ -11,10 +13,15 @@ import { formatCount } from '../data/mockData.js';
  * Shows:
  *   - Community initial icon (colored circle)
  *   - Name (g/slug), description, member + post counts
- *   - "Join" button (mock — no API yet)
+ *   - "Join" / "Joined" button with real API integration
  *   - Entire card links to /c/:slug
  */
 export default function CommunityCard({ community, rank }) {
+  const auth = useContext(AuthContext);
+  const [joined, setJoined] = useState(community.isMember || false);
+  const [joinLoading, setJoinLoading] = useState(false);
+  const [memberCount, setMemberCount] = useState(community.memberCount || 0);
+
   const colors = [
     'from-primary-500 to-primary-700',
     'from-accent-500 to-accent-700',
@@ -23,7 +30,37 @@ export default function CommunityCard({ community, rank }) {
     'from-purple-500 to-purple-700',
     'from-pink-500 to-pink-700',
   ];
-  const colorClass = colors[community.id % colors.length];
+  const colorClass = colors[(community.id || 0) % colors.length];
+
+  function formatCount(num) {
+    if (!num) return '0';
+    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+    return num.toString();
+  }
+
+  async function handleJoin(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!auth?.isAuthenticated || joinLoading) return;
+
+    setJoinLoading(true);
+    try {
+      if (joined) {
+        await communityService.leave(community.id);
+        setJoined(false);
+        setMemberCount((prev) => Math.max(0, prev - 1));
+      } else {
+        await communityService.join(community.id);
+        setJoined(true);
+        setMemberCount((prev) => prev + 1);
+      }
+    } catch (err) {
+      console.error('Join/leave failed:', err);
+    } finally {
+      setJoinLoading(false);
+    }
+  }
 
   return (
     <Link
@@ -56,7 +93,7 @@ export default function CommunityCard({ community, rank }) {
           {/* Stats */}
           <div className="flex items-center gap-4 mt-2.5">
             <span className="text-xs text-surface-500">
-              <span className="font-semibold text-surface-700 dark:text-surface-300">{formatCount(community.memberCount)}</span> members
+              <span className="font-semibold text-surface-700 dark:text-surface-300">{formatCount(memberCount)}</span> members
             </span>
             <span className="text-xs text-surface-500">
               <span className="font-semibold text-surface-700 dark:text-surface-300">{formatCount(community.postCount)}</span> posts
@@ -67,10 +104,15 @@ export default function CommunityCard({ community, rank }) {
 
       {/* Join button */}
       <button
-        onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
-        className="mt-3 w-full py-1.5 px-3 rounded-lg text-xs font-semibold bg-primary-600 hover:bg-primary-500 text-white transition-colors"
+        onClick={handleJoin}
+        disabled={joinLoading}
+        className={`mt-3 w-full py-1.5 px-3 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50 ${
+          joined
+            ? 'bg-surface-200 dark:bg-surface-700 text-surface-600 dark:text-surface-300 hover:bg-surface-300 dark:hover:bg-surface-600'
+            : 'bg-primary-600 hover:bg-primary-500 text-white'
+        }`}
       >
-        Join Community
+        {joinLoading ? '...' : joined ? '✓ Joined' : 'Join Community'}
       </button>
     </Link>
   );

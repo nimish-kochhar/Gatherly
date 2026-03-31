@@ -1,9 +1,10 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import PostCard from '../components/PostCard.jsx';
 import CommunityCard from '../components/CommunityCard.jsx';
 import { Avatar } from '../components/common';
-import { MOCK_POSTS, MOCK_COMMUNITIES } from '../data/mockData.js';
+import { communityService } from '../services/community.service.js';
+import { MOCK_POSTS } from '../data/mockData.js';
 
 /**
  * Search — Full search page at /search.
@@ -22,12 +23,13 @@ export default function Search() {
   const [searchParams, setSearchParams] = useSearchParams();
   const query = searchParams.get('q') || '';
   const [activeTab, setActiveTab] = useState('all');
+  const [communityResults, setCommunityResults] = useState([]);
 
   const setQuery = (q) => {
     setSearchParams(q ? { q } : {});
   };
 
-  // ── Mock search results ──
+  // ── Search results ──
   const q = query.toLowerCase();
 
   const postResults = useMemo(
@@ -43,17 +45,25 @@ export default function Search() {
     [q]
   );
 
-  const communityResults = useMemo(
-    () =>
-      q
-        ? MOCK_COMMUNITIES.filter(
-            (c) =>
-              c.name.toLowerCase().includes(q) ||
-              c.description.toLowerCase().includes(q)
-          )
-        : [],
-    [q]
-  );
+  // Fetch communities from API with debounce
+  const fetchCommunities = useCallback(async (searchTerm) => {
+    if (!searchTerm) {
+      setCommunityResults([]);
+      return;
+    }
+    try {
+      const { data } = await communityService.list({ search: searchTerm, limit: 10 });
+      setCommunityResults(data.communities || []);
+    } catch (err) {
+      console.error('Community search failed:', err);
+      setCommunityResults([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => fetchCommunities(query), 300);
+    return () => clearTimeout(timer);
+  }, [query, fetchCommunities]);
 
   // Mock user results
   const mockUsers = [

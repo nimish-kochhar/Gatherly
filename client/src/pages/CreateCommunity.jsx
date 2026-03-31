@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/common';
+import { communityService } from '../services/community.service.js';
+import { AuthContext } from '../context/AuthContext.jsx';
 
 /**
  * CreateCommunity — Form page to create a new community at /create-community.
@@ -10,28 +12,57 @@ import { Button } from '../components/common';
  *   - Description (textarea)
  *   - Visibility (public / private)
  *
- * On submit (mock): navigates to /c/:slug after 1s delay.
- * When the API exists, this will POST to /communities.
+ * On submit: POSTs to /api/communities, then navigates to /c/:slug.
  */
 export default function CreateCommunity() {
   const navigate = useNavigate();
+  const auth = useContext(AuthContext);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [form, setForm] = useState({
     name: '',
     description: '',
     visibility: 'public',
   });
 
-  const slug = form.name.toLowerCase().replace(/[^a-z0-9]+/g, '');
+  const slug = form.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    setTimeout(() => {
+    setError(null);
+
+    try {
+      // clean name (remove g/ if user typed it)
+      const cleanName = form.name.replace(/^g\//, '').trim();
+
+      const { data } = await communityService.create({
+        name: cleanName,
+        description: form.description,
+        visibility: form.visibility,
+      });
+
+      // navigate using real slug from backend
+      navigate(`/c/${data.slug}`);
+    } catch (err) {
+      console.error('CREATE ERROR:', err.response?.data || err.message);
+      const msg = err.response?.data?.message || 'Failed to create community. Please try again.';
+      setError(msg);
+    } finally {
       setIsLoading(false);
-      navigate(`/c/${slug}`);
-    }, 1000);
+    }
   };
+
+  if (!auth?.isAuthenticated) {
+    return (
+      <div className="max-w-2xl mx-auto">
+        <div className="card p-12 text-center">
+          <h2 className="text-xl font-bold mb-2">Sign in required</h2>
+          <p className="text-secondary text-sm">You need to be signed in to create a community.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -41,6 +72,13 @@ export default function CreateCommunity() {
       </p>
 
       <form onSubmit={handleSubmit} className="card p-6 space-y-5">
+        {/* Error message */}
+        {error && (
+          <div className="p-3 rounded-xl bg-danger-500/10 border border-danger-500/20 text-sm text-danger-500">
+            {error}
+          </div>
+        )}
+
         {/* Name */}
         <div>
           <label className="block text-sm font-medium mb-1.5">
@@ -104,11 +142,10 @@ export default function CreateCommunity() {
                 key={opt.key}
                 type="button"
                 onClick={() => setForm({ ...form, visibility: opt.key })}
-                className={`p-3 rounded-xl border text-left transition-all duration-200 ${
-                  form.visibility === opt.key
+                className={`p-3 rounded-xl border text-left transition-all duration-200 ${form.visibility === opt.key
                     ? 'border-primary-500 bg-primary-600/10'
                     : 'border-gray-200 dark:border-surface-700 hover:border-surface-500'
-                }`}
+                  }`}
               >
                 <div className="flex items-center gap-2 mb-1">
                   <span>{opt.icon}</span>

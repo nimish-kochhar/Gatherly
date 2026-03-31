@@ -6,8 +6,8 @@ import { catchAsync } from '../../utils/catchAsync.js';
  * Query params: sort (hot|new|top), limit, offset
  */
 export const list = catchAsync(async (req, res) => {
-  const { sort = 'hot', limit = 20, offset = 0 } = req.query;
-  const { posts, count } = await postService.listPosts({ sort, limit, offset });
+  const { sort = 'hot', limit = 20, offset = 0, communityId } = req.query;
+  const { posts, count } = await postService.listPosts({ sort, limit, offset, communityId });
 
   res.json({
     posts: posts.map((p) => {

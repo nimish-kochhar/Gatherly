@@ -2,26 +2,27 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import PostCard from '../components/PostCard.jsx';
 import { postService } from '../services/post.service.js';
-import { MOCK_COMMUNITIES, formatCount } from '../data/mockData.js';
+import { communityService } from '../services/community.service.js';
 
 /**
  * Home — The main feed page at /home.
  *
- * Fetches posts from the backend API. Falls back to an empty state
- * if the backend isn't available or returns no posts.
- *
- * The right sidebar widget still uses MOCK_COMMUNITIES until
- * a communities API endpoint is built.
+ * Fetches posts and trending communities from the backend API.
  */
 export default function Home() {
   const [sortBy, setSortBy] = useState('hot');
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [trendingCommunities, setTrendingCommunities] = useState([]);
 
   useEffect(() => {
     fetchPosts();
   }, [sortBy]);
+
+  useEffect(() => {
+    fetchTrendingCommunities();
+  }, []);
 
   async function fetchPosts() {
     setLoading(true);
@@ -49,6 +50,23 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function fetchTrendingCommunities() {
+    try {
+      const { data } = await communityService.list({ limit: 5, offset: 0 });
+      setTrendingCommunities(data.communities || []);
+    } catch (err) {
+      console.error('Failed to fetch trending communities:', err);
+      setTrendingCommunities([]);
+    }
+  }
+
+  function formatCount(num) {
+    if (!num) return '0';
+    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+    return num.toString();
   }
 
   const sortTabs = [
@@ -144,26 +162,30 @@ export default function Home() {
             🔥 Trending Communities
           </h3>
           <div className="space-y-2.5">
-            {MOCK_COMMUNITIES.slice(0, 5).map((c, i) => (
-              <Link
-                key={c.id}
-                to={`/c/${c.slug}`}
-                className="flex items-center gap-3 p-2 -mx-2 rounded-lg hover:bg-gray-100 dark:hover:bg-surface-800 transition-colors no-underline group"
-              >
-                <span className="text-sm font-semibold text-surface-500 w-5">{i + 1}</span>
-                <span className="h-8 w-8 rounded-full bg-gray-200 dark:bg-surface-700 flex items-center justify-center text-xs font-bold text-surface-600 dark:text-surface-300 shrink-0">
-                  {c.name[0]}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-surface-800 dark:text-surface-200 group-hover:text-primary-500 transition-colors truncate">
-                    g/{c.name}
-                  </p>
-                  <p className="text-xs text-surface-500">
-                    {formatCount(c.memberCount)} members
-                  </p>
-                </div>
-              </Link>
-            ))}
+            {trendingCommunities.length > 0 ? (
+              trendingCommunities.map((c, i) => (
+                <Link
+                  key={c.id}
+                  to={`/c/${c.slug}`}
+                  className="flex items-center gap-3 p-2 -mx-2 rounded-lg hover:bg-gray-100 dark:hover:bg-surface-800 transition-colors no-underline group"
+                >
+                  <span className="text-sm font-semibold text-surface-500 w-5">{i + 1}</span>
+                  <span className="h-8 w-8 rounded-full bg-gray-200 dark:bg-surface-700 flex items-center justify-center text-xs font-bold text-surface-600 dark:text-surface-300 shrink-0">
+                    {c.name[0]}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-surface-800 dark:text-surface-200 group-hover:text-primary-500 transition-colors truncate">
+                      g/{c.name}
+                    </p>
+                    <p className="text-xs text-surface-500">
+                      {formatCount(c.memberCount)} members
+                    </p>
+                  </div>
+                </Link>
+              ))
+            ) : (
+              <p className="text-xs text-surface-500 text-center py-2">No communities yet</p>
+            )}
           </div>
 
           <Link

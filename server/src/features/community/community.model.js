@@ -6,6 +6,12 @@ const Community = sequelize.define('Community', {
   name: { type: DataTypes.STRING(50), allowNull: false, unique: true },
   slug: { type: DataTypes.STRING, unique: true },
   description: { type: DataTypes.TEXT },
+  visibility: {
+    type: DataTypes.ENUM('public', 'private'),
+    defaultValue: 'public',
+  },
+  banner: { type: DataTypes.STRING, defaultValue: null },
+  icon: { type: DataTypes.STRING, defaultValue: null },
   // creatorId set via association
 });
 

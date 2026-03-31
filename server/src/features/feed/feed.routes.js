@@ -1,7 +1,8 @@
 import { Router } from 'express';
+import { fetchFeed } from './feed.controller.js';
 
 const router = Router();
 
-// TODO: GET /home, GET /popular
+router.get('/', fetchFeed);
 
 export default router;

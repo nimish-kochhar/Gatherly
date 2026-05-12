@@ -16,7 +16,7 @@ registerSockets(io);
 setupAssociations();
 
 async function start() {
-  // Try to connect to DB, but start the server regardless
+  // Connect to DB — fail fast if unreachable
   try {
     await sequelize.authenticate();
     console.log(`[DB] Connected to mysql://${config.db.host}:${config.db.port}/${config.db.name} as ${config.db.user}`);
@@ -29,6 +29,7 @@ async function start() {
     console.error('[DB] Failed to connect to MySQL.');
     console.error('[DB] Verify DB_HOST, DB_PORT, DB_NAME, DB_USER, and DB_PASSWORD in .env and ensure MySQL is running.');
     console.error('[DB] Error details:', err.message);
+    process.exit(1);
   }
 
   server.listen(config.port, () => {

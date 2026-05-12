@@ -1,5 +1,11 @@
 import dotenv from 'dotenv';
-dotenv.config();
+import { fileURLToPath } from 'url';
+import path from 'path';
+
+// Resolve .env relative to this file (server/src/config/index.js → server/.env)
+// so it works whether cwd is monorepo root or server/.
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 export default {
   port: process.env.PORT || 5000,

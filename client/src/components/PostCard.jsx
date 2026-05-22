@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Avatar } from './common';
-import { timeAgo, formatCount } from '../data/mockData.js';
+import { timeAgo, formatCount } from '../utils/index.js';
 
 /**
  * PostCard — Displays a single post in a feed.

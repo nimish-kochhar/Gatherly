@@ -4,7 +4,8 @@ import { Avatar } from '../components/common';
 import PostCard from '../components/PostCard.jsx';
 import useAuth from '../hooks/useAuth.js';
 import { communityService } from '../services/community.service.js';
-import { MOCK_POSTS } from '../data/mockData.js';
+import { postService } from '../services/post.service.js';
+import { formatCount } from '../utils/index.js';
 
 /**
  * Profile — User profile page at /profile/:username.
@@ -18,13 +19,15 @@ import { MOCK_POSTS } from '../data/mockData.js';
  *   └───────────────────┴─────────────────────┘
  *
  * Shows the user's posts, comment history, and community memberships.
- * Currently uses MOCK_USER data for any username.
+ * Fetches real post data from the API.
  */
 export default function Profile() {
   const { username } = useParams();
   const [activeTab, setActiveTab] = useState('posts');
   const { user: currentUser } = useAuth();
   const [profileCommunities, setProfileCommunities] = useState([]);
+  const [userPosts, setUserPosts] = useState([]);
+  const [postsLoading, setPostsLoading] = useState(true);
 
   // Use the route param as the profile username
   const profileUsername = username || currentUser?.username || 'unknown';
@@ -39,6 +42,10 @@ export default function Profile() {
     fetchCommunities();
   }, []);
 
+  useEffect(() => {
+    fetchUserPosts();
+  }, [profileUsername]);
+
   async function fetchCommunities() {
     try {
       const { data } = await communityService.list({ limit: 4, offset: 0 });
@@ -49,18 +56,38 @@ export default function Profile() {
     }
   }
 
-  function formatCount(num) {
-    if (!num) return '0';
-    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
-    return num.toString();
+  async function fetchUserPosts() {
+    setPostsLoading(true);
+    try {
+      const { data } = await postService.list({ limit: 20, offset: 0 });
+      // Filter by author username on the client side
+      const filtered = (data.posts || [])
+        .filter((p) => p.author?.username === profileUsername)
+        .map((p) => ({
+          id: p.id,
+          title: p.title,
+          content: p.body || '',
+          author: p.author || { id: 0, username: 'unknown' },
+          community: p.community || { id: 0, name: 'General', slug: 'general' },
+          upvotes: p.upvotes || 0,
+          downvotes: p.downvotes || 0,
+          commentCount: p.commentCount || 0,
+          createdAt: p.createdAt,
+          image: null,
+        }));
+      setUserPosts(filtered);
+    } catch (err) {
+      console.error('Failed to fetch user posts:', err);
+      setUserPosts([]);
+    } finally {
+      setPostsLoading(false);
+    }
   }
-  const userPosts = MOCK_POSTS.filter((p) => p.author.username === profileUsername);
 
   const stats = [
-    { label: 'Posts', value: userPosts.length || 12 },
-    { label: 'Comments', value: 89 },
-    { label: 'Karma', value: 2450 },
+    { label: 'Posts', value: userPosts.length },
+    { label: 'Comments', value: 0 },
+    { label: 'Karma', value: user.karma },
   ];
 
   const joinedDate = new Date(user.createdAt).toLocaleDateString('en-US', {
@@ -118,7 +145,7 @@ export default function Profile() {
             <div className="mt-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-500/15 to-amber-600/15 border border-amber-500/20">
               <span className="text-amber-500 text-sm">⭐</span>
               <span className="text-xs font-semibold text-amber-600 dark:text-amber-400">
-                {formatCount(2450)} karma
+                {formatCount(user.karma)} karma
               </span>
             </div>
           </div>
@@ -153,41 +180,26 @@ export default function Profile() {
           {/* Tab content */}
           {activeTab === 'posts' && (
             <div className="space-y-3">
-              {userPosts.length > 0 ? (
+              {postsLoading ? (
+                <div className="card p-8 text-center">
+                  <div className="inline-block w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full animate-spin mb-3" />
+                  <p className="text-sm text-surface-500">Loading posts...</p>
+                </div>
+              ) : userPosts.length > 0 ? (
                 userPosts.map((post) => (
                   <PostCard key={post.id} post={post} />
                 ))
               ) : (
-                // Show some posts when no exact match
-                MOCK_POSTS.slice(0, 3).map((post) => (
-                  <PostCard key={post.id} post={{ ...post, author: { ...post.author, username: user.username } }} />
-                ))
+                <div className="card p-8 text-center">
+                  <p className="text-sm text-surface-500">No posts yet</p>
+                </div>
               )}
             </div>
           )}
 
           {activeTab === 'comments' && (
-            <div className="space-y-3">
-              {/* Mock comment history */}
-              {[
-                { post: 'Optimizing React renders with useMemo', comment: 'Great tip! I use this pattern in production and it really helps.', community: 'reactjs', time: '2h ago' },
-                { post: 'Best VS Code extensions for 2026', comment: 'Missing Prettier and ESLint from this list — they are essential!', community: 'webdev', time: '5h ago' },
-                { post: 'How to structure a monorepo', comment: 'We switched to Turborepo last year and never looked back.', community: 'javascript', time: '1d ago' },
-              ].map((item, i) => (
-                <div key={i} className="card p-4">
-                  <div className="flex items-center gap-2 text-xs text-surface-500 mb-2">
-                    <span className="font-medium text-surface-700 dark:text-surface-300">g/{item.community}</span>
-                    <span>•</span>
-                    <span>{item.time}</span>
-                  </div>
-                  <p className="text-xs text-surface-500 mb-1">
-                    Commented on: <span className="text-surface-800 dark:text-surface-200 font-medium">{item.post}</span>
-                  </p>
-                  <p className="text-sm text-surface-700 dark:text-surface-300 leading-relaxed">
-                    {item.comment}
-                  </p>
-                </div>
-              ))}
+            <div className="card p-12 text-center">
+              <p className="text-surface-500 text-sm">No comment history available yet</p>
             </div>
           )}
 

@@ -2,6 +2,7 @@ import { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/common';
 import { communityService } from '../services/community.service.js';
+import { postService } from '../services/post.service.js';
 import { AuthContext } from '../context/AuthContext.jsx';
 
 /**
@@ -13,16 +14,17 @@ import { AuthContext } from '../context/AuthContext.jsx';
  *   - Content type tabs: Text / Image / Link
  *   - Content editor (textarea or URL input)
  *   - Character counters
- *   - Mock submit → redirect to /home
+ *   - Real submit → POST /api/posts → redirect to /post/:id
  */
 export default function CreatePost() {
   const navigate = useNavigate();
   const auth = useContext(AuthContext);
   const [isLoading, setIsLoading] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
   const [contentType, setContentType] = useState('text');
   const [communities, setCommunities] = useState([]);
   const [form, setForm] = useState({
-    community: '',
+    communityId: '',
     title: '',
     content: '',
     url: '',
@@ -42,13 +44,30 @@ export default function CreatePost() {
     }
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    setTimeout(() => {
+    setSubmitError(null);
+
+    try {
+      const { data } = await postService.create({
+        title: form.title.trim(),
+        body: contentType === 'text' ? form.content : contentType === 'link' ? form.url : '',
+        communityId: parseInt(form.communityId, 10),
+      });
+
+      // Navigate to the newly created post
+      navigate(`/post/${data.post.id}`);
+    } catch (err) {
+      console.error('Failed to create post:', err);
+      const message =
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        'Failed to create post. Please try again.';
+      setSubmitError(message);
+    } finally {
       setIsLoading(false);
-      navigate('/home');
-    }, 1000);
+    }
   };
 
   const inputClass = `w-full px-4 py-2.5 text-sm rounded-xl
@@ -78,13 +97,13 @@ export default function CreatePost() {
           </label>
           <select
             required
-            value={form.community}
-            onChange={(e) => setForm({ ...form, community: e.target.value })}
+            value={form.communityId}
+            onChange={(e) => setForm({ ...form, communityId: e.target.value })}
             className={`${inputClass} cursor-pointer`}
           >
             <option value="">Choose a community</option>
             {communities.map((c) => (
-              <option key={c.id} value={c.slug}>
+              <option key={c.id} value={c.id}>
                 g/{c.name}
               </option>
             ))}
@@ -188,6 +207,13 @@ export default function CreatePost() {
           )}
         </div>
 
+        {/* Submit error */}
+        {submitError && (
+          <div className="card p-3 border-danger-500/30 bg-danger-500/5">
+            <p className="text-sm text-danger-500">{submitError}</p>
+          </div>
+        )}
+
         {/* Actions */}
         <div className="flex items-center justify-between">
           <p className="text-xs text-surface-500">
@@ -205,7 +231,7 @@ export default function CreatePost() {
               type="submit"
               variant="primary"
               loading={isLoading}
-              disabled={!form.community || !form.title}
+              disabled={!form.communityId || !form.title.trim()}
             >
               Post
             </Button>

@@ -4,7 +4,7 @@ import PostCard from '../components/PostCard.jsx';
 import CommunityCard from '../components/CommunityCard.jsx';
 import { Avatar } from '../components/common';
 import { communityService } from '../services/community.service.js';
-import { MOCK_POSTS } from '../data/mockData.js';
+import { postService } from '../services/post.service.js';
 
 /**
  * Search — Full search page at /search.
@@ -12,22 +12,53 @@ import { MOCK_POSTS } from '../data/mockData.js';
  * Features:
  *   - Large search input (auto-focuses)
  *   - Tabs to filter by result type: All / Posts / Communities / Users
- *   - Live client-side filtering on mock data
+ *   - Live filtering using API data
  *   - Results count
  *   - Empty states for no query and no results
  *
  * The query is stored in the URL via ?q= so it's shareable.
- * When the API exists, replace the local filter with a fetch call.
  */
 export default function Search() {
   const [searchParams, setSearchParams] = useSearchParams();
   const query = searchParams.get('q') || '';
   const [activeTab, setActiveTab] = useState('all');
   const [communityResults, setCommunityResults] = useState([]);
+  const [allPosts, setAllPosts] = useState([]);
+  const [postsLoading, setPostsLoading] = useState(false);
 
   const setQuery = (q) => {
     setSearchParams(q ? { q } : {});
   };
+
+  // ── Fetch posts once and filter on query change ──
+  useEffect(() => {
+    fetchPosts();
+  }, []);
+
+  async function fetchPosts() {
+    setPostsLoading(true);
+    try {
+      const { data } = await postService.list({ limit: 100, offset: 0 });
+      const normalized = (data.posts || []).map((p) => ({
+        id: p.id,
+        title: p.title,
+        content: p.body || '',
+        author: p.author || { id: 0, username: 'unknown' },
+        community: p.community || { id: 0, name: 'General', slug: 'general' },
+        upvotes: p.upvotes || 0,
+        downvotes: p.downvotes || 0,
+        commentCount: p.commentCount || 0,
+        createdAt: p.createdAt,
+        image: null,
+      }));
+      setAllPosts(normalized);
+    } catch (err) {
+      console.error('Failed to fetch posts for search:', err);
+      setAllPosts([]);
+    } finally {
+      setPostsLoading(false);
+    }
+  }
 
   // ── Search results ──
   const q = query.toLowerCase();
@@ -35,14 +66,14 @@ export default function Search() {
   const postResults = useMemo(
     () =>
       q
-        ? MOCK_POSTS.filter(
+        ? allPosts.filter(
             (p) =>
               p.title.toLowerCase().includes(q) ||
               p.content.toLowerCase().includes(q) ||
               p.author.username.toLowerCase().includes(q)
           )
         : [],
-    [q]
+    [q, allPosts]
   );
 
   // Fetch communities from API with debounce
@@ -65,24 +96,12 @@ export default function Search() {
     return () => clearTimeout(timer);
   }, [query, fetchCommunities]);
 
-  // Mock user results
-  const mockUsers = [
-    { id: 10, username: 'sarahdev', bio: 'React enthusiast & open-source contributor' },
-    { id: 11, username: 'coderebel', bio: 'Full-stack developer, JS lover' },
-    { id: 12, username: 'pixelperfect', bio: 'UI/UX designer creating beautiful interfaces' },
-  ];
-  const userResults = useMemo(
-    () => (q ? mockUsers.filter((u) => u.username.toLowerCase().includes(q)) : []),
-    [q]
-  );
-
-  const totalCount = postResults.length + communityResults.length + userResults.length;
+  const totalCount = postResults.length + communityResults.length;
 
   const tabs = [
     { key: 'all', label: 'All', count: totalCount },
     { key: 'posts', label: 'Posts', count: postResults.length },
     { key: 'communities', label: 'Communities', count: communityResults.length },
-    { key: 'users', label: 'Users', count: userResults.length },
   ];
 
   return (
@@ -162,8 +181,16 @@ export default function Search() {
             {totalCount} result{totalCount !== 1 ? 's' : ''} for &ldquo;{query}&rdquo;
           </p>
 
+          {/* Loading */}
+          {postsLoading && (
+            <div className="card p-8 text-center mb-4">
+              <div className="inline-block w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full animate-spin mb-3" />
+              <p className="text-sm text-surface-500">Searching...</p>
+            </div>
+          )}
+
           {/* No results */}
-          {totalCount === 0 && (
+          {!postsLoading && totalCount === 0 && (
             <div className="card p-12 text-center">
               <div className="text-4xl mb-3">😕</div>
               <h3 className="text-base font-semibold mb-1">No results found</h3>
@@ -196,35 +223,6 @@ export default function Search() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {communityResults.map((c) => (
                   <CommunityCard key={c.id} community={c} />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* User results */}
-          {(activeTab === 'all' || activeTab === 'users') && userResults.length > 0 && (
-            <div className="mb-6">
-              {activeTab === 'all' && (
-                <h3 className="text-xs font-semibold uppercase text-surface-500 mb-2 px-1">Users</h3>
-              )}
-              <div className="space-y-2">
-                {userResults.map((user) => (
-                  <Link
-                    key={user.id}
-                    to={`/profile/${user.username}`}
-                    className="card flex items-center gap-3 p-3 hover:border-primary-500/30 no-underline"
-                  >
-                    <Avatar name={user.username} size="md" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-surface-900 dark:text-surface-100">
-                        {user.username}
-                      </p>
-                      {user.bio && (
-                        <p className="text-xs text-surface-500 truncate">{user.bio}</p>
-                      )}
-                    </div>
-                    <span className="text-xs text-primary-500 font-medium">View Profile</span>
-                  </Link>
                 ))}
               </div>
             </div>

@@ -1,17 +1,18 @@
 import { DataTypes } from 'sequelize';
 import sequelize from '../../config/db.js';
 
-const Message = sequelize.define('Message', {
+const ConversationParticipant = sequelize.define('ConversationParticipant', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-  body: { type: DataTypes.TEXT, allowNull: false },
-  senderId: {
-    type: DataTypes.INTEGER,
-    allowNull: false
-  },
   conversationId: {
     type: DataTypes.INTEGER,
     allowNull: false
+  },
+  userId: {
+    type: DataTypes.INTEGER,
+    allowNull: false
   }
+}, {
+  timestamps: true, // track when they joined
 });
 
-export default Message;
+export default ConversationParticipant;

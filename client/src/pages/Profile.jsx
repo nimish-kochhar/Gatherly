@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { chatService } from '../services/chat.service.js';
 import { Avatar } from '../components/common';
 import PostCard from '../components/PostCard.jsx';
 import KarmaBadge from '../components/profile/KarmaBadge.jsx';
@@ -27,6 +28,7 @@ export default function Profile() {
   const { username } = useParams();
   const [activeTab, setActiveTab] = useState('posts');
   const { user: currentUser } = useAuth();
+  const navigate = useNavigate();
   const [profileCommunities, setProfileCommunities] = useState([]);
   const [userPosts, setUserPosts] = useState([]);
   const [postsLoading, setPostsLoading] = useState(true);
@@ -133,6 +135,18 @@ export default function Profile() {
     );
   }
 
+  const handleMessageUser = async () => {
+    // profile may be { id, username, ... } or { user: { id, ... } } depending on unwrapping
+    const targetId = profile?.id || profile?.user?.id;
+    if (!targetId) return;
+    try {
+      await chatService.startConversation(targetId);
+      navigate('/chat');
+    } catch (err) {
+      console.error('Failed to start conversation', err);
+    }
+  };
+
   const stats = [
     { label: 'Posts', value: profile?.postCount ?? userPosts.length },
     { label: 'Comments', value: profile?.commentCount ?? 0 },
@@ -161,14 +175,21 @@ export default function Profile() {
               </div>
 
               {/* Edit profile button (only for own profile) */}
-              {currentUser && (profile?.username || profileUsername) === currentUser.username && (
+              {currentUser && (profile?.username || profileUsername) === currentUser.username ? (
                 <Link
                   to="/settings"
                   className="px-4 py-1.5 rounded-lg border border-gray-300 dark:border-surface-600 text-sm font-medium text-surface-700 dark:text-surface-300 hover:bg-gray-100 dark:hover:bg-surface-800 transition-colors no-underline"
                 >
                   Edit Profile
                 </Link>
-              )}
+              ) : currentUser ? (
+                <button
+                  onClick={handleMessageUser}
+                  className="px-4 py-1.5 rounded-lg bg-primary-600 text-white text-sm font-medium hover:bg-primary-500 transition-colors"
+                >
+                  Message
+                </button>
+              ) : null}
             </div>
 
             {/* Bio */}

@@ -7,12 +7,16 @@ import Comment from '../features/post/comment.model.js';
 import Community from '../features/community/community.model.js';
 import Membership from '../features/community/membership.model.js';
 import Vote from '../features/post/vote.model.js';
+import Conversation from '../features/chat/conversation.model.js';
+import Message from '../features/chat/message.model.js';
+import ConversationParticipant from '../features/chat/conversationParticipant.model.js';
 
 export function setupAssociations() {
   // --- User ---
   User.hasMany(Post, { foreignKey: 'userId' });
   User.hasMany(Comment, { foreignKey: 'userId' });
   User.hasMany(Vote, { foreignKey: 'userId' });
+  User.hasMany(Message, { foreignKey: 'senderId' });
 
   // --- Vote (polymorphic: votableType + votableId) ---
   Vote.belongsTo(User, { foreignKey: 'userId' });
@@ -38,4 +42,19 @@ export function setupAssociations() {
   Membership.belongsTo(User, { foreignKey: 'userId' });
   Community.hasMany(Membership, { foreignKey: 'communityId' });
   User.hasMany(Membership, { foreignKey: 'userId' });
+
+  // --- Chat ---
+  Conversation.hasMany(Message, { foreignKey: 'conversationId' });
+  Message.belongsTo(Conversation, { foreignKey: 'conversationId' });
+
+  User.belongsToMany(Conversation, { through: ConversationParticipant, foreignKey: 'userId' });
+  Conversation.belongsToMany(User, { through: ConversationParticipant, foreignKey: 'conversationId' });
+
+  Message.belongsTo(User, { as: 'sender', foreignKey: 'senderId' });
+  
+  // Direct associations for ConversationParticipant
+  ConversationParticipant.belongsTo(Conversation, { foreignKey: 'conversationId' });
+  ConversationParticipant.belongsTo(User, { foreignKey: 'userId' });
+  Conversation.hasMany(ConversationParticipant, { foreignKey: 'conversationId' });
+  User.hasMany(ConversationParticipant, { foreignKey: 'userId' });
 }

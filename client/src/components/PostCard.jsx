@@ -1,7 +1,9 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useContext } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Avatar } from './common';
 import { timeAgo, formatCount } from '../utils/index.js';
+import { postService } from '../services/post.service.js';
+import { AuthContext } from '../context/AuthContext.jsx';
 
 /**
  * PostCard — Displays a single post in a feed.
@@ -9,32 +11,87 @@ import { timeAgo, formatCount } from '../utils/index.js';
  * Props:
  *   post: {
  *     id, title, content, author, community,
- *     upvotes, downvotes, commentCount, createdAt, image
+ *     upvotes, downvotes, commentCount, createdAt, image, userVote
  *   }
  *
  * Features:
- *   - Vote buttons (upvote/downvote) with local state toggle
+ *   - Vote buttons (upvote/downvote) with optimistic updates + API persistence
  *   - Community link + author info + relative timestamp
  *   - Truncated content preview with "Read more" link
  *   - Comment count + Share button
  *   - Entire card is clickable to navigate to post detail
  *
- * How voting works (mock):
- *   We track local voteState ('up' | 'down' | null) and adjust
- *   the displayed score accordingly. When the API exists, each
- *   click will send a POST request instead.
+ * How voting works:
+ *   - voteState is initialized from post.userVote (from server)
+ *   - On click, we optimistically update UI then fire API call
+ *   - On API failure, we roll back to the previous state
+ *   - Unauthenticated users are redirected to the landing page
  */
 export default function PostCard({ post }) {
-  const [voteState, setVoteState] = useState(null); // null | 'up' | 'down'
+  const { isAuthenticated } = useContext(AuthContext);
+  const navigate = useNavigate();
 
-  const baseScore = post.upvotes - post.downvotes;
-  const displayScore =
-    voteState === 'up' ? baseScore + 1 : voteState === 'down' ? baseScore - 1 : baseScore;
+  const [voteState, setVoteState] = useState(post.userVote || null); // null | 'up' | 'down'
+  const [upvotes, setUpvotes] = useState(post.upvotes);
+  const [downvotes, setDownvotes] = useState(post.downvotes);
+  const [isVoting, setIsVoting] = useState(false);
 
-  const handleVote = (direction, e) => {
+  const displayScore = upvotes - downvotes;
+
+  const handleVote = async (direction, e) => {
     e.preventDefault();       // Prevent the Link from navigating
     e.stopPropagation();
-    setVoteState((prev) => (prev === direction ? null : direction));
+
+    if (!isAuthenticated) {
+      navigate('/');
+      return;
+    }
+
+    if (isVoting) return; // Debounce
+
+    // Determine the value to send — toggle if same direction
+    const newValue = voteState === direction ? null : direction;
+
+    // Save previous state for rollback
+    const prevVoteState = voteState;
+    const prevUpvotes = upvotes;
+    const prevDownvotes = downvotes;
+
+    // Optimistic update
+    setVoteState(newValue);
+    // Adjust counts based on the transition
+    let newUpvotes = post.upvotes;
+    let newDownvotes = post.downvotes;
+    // We recalculate from the base counts + the new vote
+    // Actually, let's just compute from the current server-synced state
+    // after the API call. For now, adjust optimistically:
+    if (prevVoteState === 'up') newUpvotes = prevUpvotes - 1;
+    else if (prevVoteState === 'down') newDownvotes = prevDownvotes - 1;
+    else { newUpvotes = prevUpvotes; newDownvotes = prevDownvotes; }
+
+    if (newValue === 'up') newUpvotes += 1;
+    else if (newValue === 'down') newDownvotes += 1;
+
+    setUpvotes(newUpvotes);
+    setDownvotes(newDownvotes);
+
+    // API call
+    setIsVoting(true);
+    try {
+      const { data } = await postService.vote(post.id, newValue);
+      // Sync with server truth
+      setUpvotes(data.upvotes);
+      setDownvotes(data.downvotes);
+      setVoteState(data.userVote);
+    } catch (err) {
+      console.error('Vote failed:', err);
+      // Rollback
+      setVoteState(prevVoteState);
+      setUpvotes(prevUpvotes);
+      setDownvotes(prevDownvotes);
+    } finally {
+      setIsVoting(false);
+    }
   };
 
   return (
@@ -98,7 +155,7 @@ export default function PostCard({ post }) {
             }`}
             title="Upvote"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="w-4 h-4" fill={voteState === 'up' ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
             </svg>
           </button>
@@ -116,7 +173,7 @@ export default function PostCard({ post }) {
             }`}
             title="Downvote"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="w-4 h-4" fill={voteState === 'down' ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
             </svg>
           </button>

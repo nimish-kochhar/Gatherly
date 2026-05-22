@@ -41,6 +41,7 @@ export default function Home() {
         commentCount: p.commentCount || 0,
         createdAt: p.createdAt,
         image: null,
+        userVote: p.userVote || null,
       }));
       setPosts(normalized);
     } catch (err) {

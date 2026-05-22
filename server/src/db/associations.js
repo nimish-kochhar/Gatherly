@@ -6,11 +6,16 @@ import Post from '../features/post/post.model.js';
 import Comment from '../features/post/comment.model.js';
 import Community from '../features/community/community.model.js';
 import Membership from '../features/community/membership.model.js';
+import Vote from '../features/post/vote.model.js';
 
 export function setupAssociations() {
   // --- User ---
   User.hasMany(Post, { foreignKey: 'userId' });
   User.hasMany(Comment, { foreignKey: 'userId' });
+  User.hasMany(Vote, { foreignKey: 'userId' });
+
+  // --- Vote (polymorphic: votableType + votableId) ---
+  Vote.belongsTo(User, { foreignKey: 'userId' });
 
   // --- Post ---
   Post.belongsTo(User, { as: 'author', foreignKey: 'userId' });

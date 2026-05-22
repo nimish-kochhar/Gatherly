@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Avatar } from '../components/common';
 import PostCard from '../components/PostCard.jsx';
+import KarmaBadge from '../components/profile/KarmaBadge.jsx';
 import useAuth from '../hooks/useAuth.js';
 import { communityService } from '../services/community.service.js';
 import { postService } from '../services/post.service.js';
+import { userService } from '../services/user.service.js';
 import { formatCount } from '../utils/index.js';
 
 /**
@@ -19,7 +21,7 @@ import { formatCount } from '../utils/index.js';
  *   └───────────────────┴─────────────────────┘
  *
  * Shows the user's posts, comment history, and community memberships.
- * Fetches real post data from the API.
+ * Fetches real user profile data and posts from the API.
  */
 export default function Profile() {
   const { username } = useParams();
@@ -29,22 +31,58 @@ export default function Profile() {
   const [userPosts, setUserPosts] = useState([]);
   const [postsLoading, setPostsLoading] = useState(true);
 
+  // Profile data fetched from the API
+  const [profile, setProfile] = useState(null);
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [karmaBreakdown, setKarmaBreakdown] = useState(null);
+
   // Use the route param as the profile username
   const profileUsername = username || currentUser?.username || 'unknown';
-  const user = {
-    username: profileUsername,
-    bio: currentUser?.username === profileUsername ? (currentUser?.bio || '') : '',
-    createdAt: currentUser?.username === profileUsername ? (currentUser?.createdAt || new Date().toISOString()) : new Date().toISOString(),
-    karma: currentUser?.username === profileUsername ? (currentUser?.karma || 0) : 0,
-  };
 
   useEffect(() => {
     fetchCommunities();
   }, []);
 
   useEffect(() => {
+    fetchProfile();
     fetchUserPosts();
   }, [profileUsername]);
+
+  async function fetchProfile() {
+    setProfileLoading(true);
+    try {
+      const [profileRes, karmaRes] = await Promise.all([
+        userService.getProfile(profileUsername),
+        userService.getKarmaBreakdown(profileUsername),
+      ]);
+      setProfile(profileRes.data);
+      setKarmaBreakdown(karmaRes.data);
+    } catch (err) {
+      console.error('Failed to fetch profile:', err);
+      // Fallback to basic info from AuthContext if viewing own profile
+      if (currentUser?.username === profileUsername) {
+        setProfile({
+          username: currentUser.username,
+          bio: currentUser.bio || '',
+          createdAt: currentUser.createdAt || new Date().toISOString(),
+          karma: currentUser.karma || 0,
+          postCount: 0,
+          commentCount: 0,
+        });
+      } else {
+        setProfile({
+          username: profileUsername,
+          bio: '',
+          createdAt: new Date().toISOString(),
+          karma: 0,
+          postCount: 0,
+          commentCount: 0,
+        });
+      }
+    } finally {
+      setProfileLoading(false);
+    }
+  }
 
   async function fetchCommunities() {
     try {
@@ -74,6 +112,7 @@ export default function Profile() {
           commentCount: p.commentCount || 0,
           createdAt: p.createdAt,
           image: null,
+          userVote: p.userVote || null,
         }));
       setUserPosts(filtered);
     } catch (err) {
@@ -84,13 +123,23 @@ export default function Profile() {
     }
   }
 
+  // Loading state while profile is being fetched
+  if (profileLoading) {
+    return (
+      <div className="card p-12 text-center">
+        <div className="inline-block w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full animate-spin mb-3" />
+        <p className="text-sm text-surface-500">Loading profile...</p>
+      </div>
+    );
+  }
+
   const stats = [
-    { label: 'Posts', value: userPosts.length },
-    { label: 'Comments', value: 0 },
-    { label: 'Karma', value: user.karma },
+    { label: 'Posts', value: profile?.postCount ?? userPosts.length },
+    { label: 'Comments', value: profile?.commentCount ?? 0 },
+    { label: 'Karma', value: profile?.karma ?? 0 },
   ];
 
-  const joinedDate = new Date(user.createdAt).toLocaleDateString('en-US', {
+  const joinedDate = new Date(profile?.createdAt || Date.now()).toLocaleDateString('en-US', {
     month: 'long',
     year: 'numeric',
   });
@@ -100,19 +149,19 @@ export default function Profile() {
       {/* ── Profile Header ── */}
       <div className="card p-6 mb-6">
         <div className="flex flex-col sm:flex-row items-start gap-5">
-          <Avatar name={user.username} size="xl" />
+          <Avatar name={profile?.username || profileUsername} size="xl" />
 
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h1 className="text-xl font-bold">{user.username}</h1>
+                <h1 className="text-xl font-bold">{profile?.username || profileUsername}</h1>
                 <p className="text-sm text-surface-500 mt-0.5">
                   Joined {joinedDate}
                 </p>
               </div>
 
               {/* Edit profile button (only for own profile) */}
-              {currentUser && user.username === currentUser.username && (
+              {currentUser && (profile?.username || profileUsername) === currentUser.username && (
                 <Link
                   to="/settings"
                   className="px-4 py-1.5 rounded-lg border border-gray-300 dark:border-surface-600 text-sm font-medium text-surface-700 dark:text-surface-300 hover:bg-gray-100 dark:hover:bg-surface-800 transition-colors no-underline"
@@ -123,9 +172,9 @@ export default function Profile() {
             </div>
 
             {/* Bio */}
-            {user.bio && (
+            {profile?.bio && (
               <p className="text-sm text-surface-600 dark:text-surface-400 mt-3 leading-relaxed max-w-2xl">
-                {user.bio}
+                {profile.bio}
               </p>
             )}
 
@@ -142,12 +191,7 @@ export default function Profile() {
             </div>
 
             {/* Karma badge */}
-            <div className="mt-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-500/15 to-amber-600/15 border border-amber-500/20">
-              <span className="text-amber-500 text-sm">⭐</span>
-              <span className="text-xs font-semibold text-amber-600 dark:text-amber-400">
-                {formatCount(user.karma)} karma
-              </span>
-            </div>
+            <KarmaBadge karma={profile?.karma ?? 0} showBreakdown breakdown={karmaBreakdown} />
           </div>
         </div>
       </div>

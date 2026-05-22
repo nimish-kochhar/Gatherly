@@ -50,6 +50,7 @@ export default function Search() {
         commentCount: p.commentCount || 0,
         createdAt: p.createdAt,
         image: null,
+        userVote: p.userVote || null,
       }));
       setAllPosts(normalized);
     } catch (err) {

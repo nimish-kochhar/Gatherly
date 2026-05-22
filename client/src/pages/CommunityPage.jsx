@@ -80,6 +80,7 @@ export default function CommunityPage() {
         commentCount: p.commentCount || 0,
         createdAt: p.createdAt,
         image: null,
+        userVote: p.userVote || null,
       }));
       setPosts(normalized);
     } catch (err) {

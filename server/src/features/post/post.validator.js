@@ -19,3 +19,45 @@ export const createPostSchema = z.object({
       .positive('Invalid community ID'),
   }),
 });
+
+/**
+ * Validation schema for voting on a post.
+ * value: 'up' to upvote, 'down' to downvote, null to remove vote.
+ */
+export const voteSchema = z.object({
+  body: z.object({
+    value: z
+      .enum(['up', 'down'])
+      .nullable(),
+  }),
+});
+
+/**
+ * Validation schema for creating a comment.
+ */
+export const createCommentSchema = z.object({
+  body: z.object({
+    body: z
+      .string()
+      .min(1, 'Comment body is required')
+      .max(10000, 'Comment must be 10000 characters or fewer'),
+    parentId: z
+      .number()
+      .int()
+      .positive('Invalid parent comment ID')
+      .optional(),
+  }),
+});
+
+/**
+ * Validation schema for voting on a comment.
+ * value: 'up' to upvote, 'down' to downvote, null to remove vote.
+ */
+export const commentVoteSchema = z.object({
+  body: z.object({
+    value: z
+      .enum(['up', 'down'])
+      .nullable(),
+  }),
+});
+

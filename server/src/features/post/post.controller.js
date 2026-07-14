@@ -154,6 +154,25 @@ export const voteComment = catchAsync(async (req, res) => {
 });
 
 /**
+ * Serialize a comment (and its replies recursively) for the API response.
+ */
+function serializeComment(c) {
+  return {
+    id: c.id,
+    body: c.body,
+    upvotes: c.upvotes,
+    downvotes: c.downvotes,
+    userVote: c.userVote || null,
+    createdAt: c.createdAt,
+    parentId: c.parentId || null,
+    author: c.User
+      ? { id: c.User.id, username: c.User.username }
+      : null,
+    replies: (c.replies || []).map(serializeComment),
+  };
+}
+
+/**
  * GET /api/posts/:id/comments — List comments for a post.
  */
 export const listComments = catchAsync(async (req, res) => {
@@ -161,30 +180,7 @@ export const listComments = catchAsync(async (req, res) => {
   const comments = await postService.getCommentsByPostId(req.params.id, userId);
 
   res.json({
-    comments: comments.map((c) => {
-      return {
-        id: c.id,
-        body: c.body,
-        upvotes: c.upvotes,
-        downvotes: c.downvotes,
-        userVote: c.userVote || null,
-        createdAt: c.createdAt,
-        author: c.User
-          ? { id: c.User.id, username: c.User.username }
-          : null,
-        replies: (c.replies || []).map((reply) => ({
-          id: reply.id,
-          body: reply.body,
-          upvotes: reply.upvotes,
-          downvotes: reply.downvotes,
-          userVote: reply.userVote || null,
-          createdAt: reply.createdAt,
-          author: reply.User
-            ? { id: reply.User.id, username: reply.User.username }
-            : null,
-        })),
-      };
-    }),
+    comments: comments.map(serializeComment),
   });
 });
 

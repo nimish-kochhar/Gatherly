@@ -28,7 +28,7 @@ async function start() {
   } catch (err) {
     console.error('[DB] Failed to connect to MySQL.');
     console.error('[DB] Verify DB_HOST, DB_PORT, DB_NAME, DB_USER, and DB_PASSWORD in .env and ensure MySQL is running.');
-    console.error('[DB] Error details:', err.message);
+    console.error('[DB] Error dcdetails:', err.message);
     process.exit(1);
   }
 

@@ -373,39 +373,27 @@ export async function createComment(postId, userId, body, parentId = null) {
 
 /**
  * Get all comments for a post, structured as top-level comments with nested replies.
+ * Fetches all comments in a single flat query, then builds the tree in memory
+ * to support arbitrary nesting depth.
+ *
  * When userId is provided, each comment includes the user's vote state.
  *
  * @param {number} postId
  * @param {number|null} userId - Optional: authenticated user's ID
- * @returns {Promise<Object[]>} Top-level comments with replies
+ * @returns {Promise<Object[]>} Top-level comments with nested replies
  */
 export async function getCommentsByPostId(postId, userId = null) {
-  const comments = await Comment.findAll({
-    where: { postId, parentId: null },
-    include: [
-      { model: User, attributes: ['id', 'username'] },
-      {
-        model: Comment,
-        as: 'replies',
-        include: [{ model: User, attributes: ['id', 'username'] }],
-      },
-    ],
-    order: [
-      ['createdAt', 'ASC'],
-      [{ model: Comment, as: 'replies' }, 'createdAt', 'ASC'],
-    ],
+  // 1. Flat-fetch all comments for this post with author info
+  const allComments = await Comment.findAll({
+    where: { postId },
+    include: [{ model: User, attributes: ['id', 'username'] }],
+    order: [['createdAt', 'ASC']],
   });
 
-  // Batch-fetch user votes for all comments (top-level + replies)
-  const allCommentIds = [];
-  for (const c of comments) {
-    allCommentIds.push(c.id);
-    if (c.replies) {
-      for (const r of c.replies) {
-        allCommentIds.push(r.id);
-      }
-    }
-  }
+  if (allComments.length === 0) return [];
+
+  // 2. Batch-fetch user votes for every comment
+  const allCommentIds = allComments.map((c) => c.id);
 
   let voteMap = new Map();
   if (userId && allCommentIds.length > 0) {
@@ -417,16 +405,26 @@ export async function getCommentsByPostId(postId, userId = null) {
     }
   }
 
-  // Attach userVote to each comment
-  return comments.map((comment) => {
-    const c = comment.toJSON();
-    c.userVote = voteMap.get(c.id) || null;
-    if (c.replies) {
-      c.replies = c.replies.map((reply) => ({
-        ...reply,
-        userVote: voteMap.get(reply.id) || null,
-      }));
-    }
-    return c;
+  // 3. Convert to plain objects, attach userVote, and initialise replies array
+  const commentMap = new Map();
+  const plainComments = allComments.map((c) => {
+    const obj = c.toJSON();
+    obj.userVote = voteMap.get(obj.id) || null;
+    obj.replies = [];
+    commentMap.set(obj.id, obj);
+    return obj;
   });
+
+  // 4. Build the tree: attach each comment to its parent's replies array
+  const topLevel = [];
+  for (const comment of plainComments) {
+    if (comment.parentId && commentMap.has(comment.parentId)) {
+      commentMap.get(comment.parentId).replies.push(comment);
+    } else {
+      // Top-level comment (parentId is null, or parent not found)
+      topLevel.push(comment);
+    }
+  }
+
+  return topLevel;
 }

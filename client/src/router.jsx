@@ -1,5 +1,5 @@
 import { Routes, Route } from 'react-router-dom';
-import { MainLayout } from './components/layout';
+import { MainLayout, ProtectedRoute } from './components/layout';
 import {
   Landing,
   Home,
@@ -46,20 +46,22 @@ function AppRouter() {
       {/* Landing page — standalone, no layout shell */}
       <Route path="/" element={<Landing />} />
 
-      {/* All authenticated pages share the MainLayout */}
-      <Route element={<MainLayout />}>
-        <Route path="/home" element={<Home />} />
-        <Route path="/explore" element={<Explore />} />
-        <Route path="/popular" element={<Popular />} />
-        <Route path="/c/:slug" element={<CommunityPage />} />
-        <Route path="/create-community" element={<CreateCommunity />} />
-        <Route path="/post/:id" element={<PostPage />} />
-        <Route path="/create" element={<CreatePost />} />
-        <Route path="/profile/:username" element={<Profile />} />
-        <Route path="/chat" element={<Chat />} />
-        <Route path="/search" element={<Search />} />
-        <Route path="/settings" element={<Settings />} />
-        <Route path="/notifications" element={<Notifications />} />
+      {/* All authenticated pages require login and share the MainLayout */}
+      <Route element={<ProtectedRoute />}>
+        <Route element={<MainLayout />}>
+          <Route path="/home" element={<Home />} />
+          <Route path="/explore" element={<Explore />} />
+          <Route path="/popular" element={<Popular />} />
+          <Route path="/c/:slug" element={<CommunityPage />} />
+          <Route path="/create-community" element={<CreateCommunity />} />
+          <Route path="/post/:id" element={<PostPage />} />
+          <Route path="/create" element={<CreatePost />} />
+          <Route path="/profile/:username" element={<Profile />} />
+          <Route path="/chat" element={<Chat />} />
+          <Route path="/search" element={<Search />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/notifications" element={<Notifications />} />
+        </Route>
       </Route>
 
       {/* 404 fallback */}

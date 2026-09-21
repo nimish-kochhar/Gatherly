@@ -61,3 +61,14 @@ export const commentVoteSchema = z.object({
   }),
 });
 
+/**
+ * Validation schema for updating a comment.
+ */
+export const updateCommentSchema = z.object({
+  body: z.object({
+    body: z
+      .string()
+      .min(1, 'Comment body is required')
+      .max(10000, 'Comment must be 10000 characters or fewer'),
+  }),
+});

@@ -121,6 +121,24 @@ export default function PostPage() {
     setCommentCount((prev) => prev + 1);
   }
 
+  /**
+   * Update a comment's body in local state after a successful edit.
+   */
+  function handleCommentEdited(commentId, newBody) {
+    function updateInTree(comments) {
+      return comments.map((c) => {
+        if (c.id === commentId) {
+          return { ...c, body: newBody, isEdited: true };
+        }
+        if (c.replies && c.replies.length > 0) {
+          return { ...c, replies: updateInTree(c.replies) };
+        }
+        return c;
+      });
+    }
+    setComments((prev) => updateInTree(prev));
+  }
+
   async function handleVote(direction) {
     if (!isAuthenticated) {
       navigate('/');
@@ -348,7 +366,9 @@ export default function PostPage() {
           commentCount={commentCount}
           postId={id}
           isAuthenticated={isAuthenticated}
+          currentUser={user}
           onReplyAdded={handleReplyAdded}
+          onCommentEdited={handleCommentEdited}
           navigate={navigate}
         />
       </div>

@@ -50,4 +50,13 @@ export const postService = {
    * @returns {Promise<{ data: { upvotes: number, downvotes: number, userVote: string|null } }>}
    */
   voteOnComment: (postId, commentId, value) => api.put(`/posts/${postId}/comments/${commentId}/vote`, { value }),
+
+  /**
+   * Update a comment's body.
+   * @param {number|string} postId
+   * @param {number|string} commentId
+   * @param {{ body: string }} data
+   * @returns {Promise<{ data: { comment: Object } }>}
+   */
+  updateComment: (postId, commentId, data) => api.put(`/posts/${postId}/comments/${commentId}`, data),
 };

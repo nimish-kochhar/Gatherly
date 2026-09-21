@@ -3,7 +3,7 @@ import * as postController from './post.controller.js';
 import { authenticate } from '../../middleware/authenticate.js';
 import { optionalAuthenticate } from '../../middleware/optionalAuthenticate.js';
 import { validate } from '../../middleware/validate.js';
-import { createPostSchema, voteSchema, createCommentSchema, commentVoteSchema } from './post.validator.js';
+import { createPostSchema, voteSchema, createCommentSchema, commentVoteSchema, updateCommentSchema } from './post.validator.js';
 
 const router = Router();
 
@@ -27,5 +27,8 @@ router.get('/:id/comments', optionalAuthenticate, postController.listComments);
 
 // POST /api/posts/:id/comments — add a comment (requires auth)
 router.post('/:id/comments', authenticate, validate(createCommentSchema), postController.createComment);
+
+// PUT /api/posts/:id/comments/:commentId — edit a comment (requires auth, author only)
+router.put('/:id/comments/:commentId', authenticate, validate(updateCommentSchema), postController.updateComment);
 
 export default router;

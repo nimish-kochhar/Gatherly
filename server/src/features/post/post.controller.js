@@ -163,6 +163,7 @@ function serializeComment(c) {
     upvotes: c.upvotes,
     downvotes: c.downvotes,
     userVote: c.userVote || null,
+    isEdited: c.isEdited || false,
     createdAt: c.createdAt,
     parentId: c.parentId || null,
     author: c.User
@@ -202,12 +203,42 @@ export const createComment = catchAsync(async (req, res) => {
       upvotes: 0,
       downvotes: 0,
       userVote: null,
+      isEdited: false,
       createdAt: c.createdAt,
       parentId: c.parentId,
       author: c.User
         ? { id: c.User.id, username: c.User.username }
         : null,
       replies: [],
+    },
+  });
+});
+
+/**
+ * PUT /api/posts/:id/comments/:commentId — Edit a comment (requires authentication).
+ * Only the comment author can edit.
+ */
+export const updateComment = catchAsync(async (req, res) => {
+  const { commentId } = req.params;
+  const userId = req.user.userId;
+  const { body } = req.body;
+
+  const comment = await postService.updateComment(commentId, userId, body);
+
+  const c = comment.toJSON();
+  res.json({
+    comment: {
+      id: c.id,
+      body: c.body,
+      upvotes: c.upvotes,
+      downvotes: c.downvotes,
+      userVote: null,
+      isEdited: c.isEdited,
+      createdAt: c.createdAt,
+      parentId: c.parentId,
+      author: c.User
+        ? { id: c.User.id, username: c.User.username }
+        : null,
     },
   });
 });

@@ -81,5 +81,15 @@ export default function AuthProvider({ children }) {
     logout,
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {loading ? (
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="h-8 w-8 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : (
+        children
+      )}
+    </AuthContext.Provider>
+  );
 }

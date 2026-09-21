@@ -7,6 +7,7 @@ const Comment = sequelize.define('Comment', {
   parentId: { type: DataTypes.INTEGER, allowNull: true },
   upvotes: { type: DataTypes.INTEGER, defaultValue: 0 },
   downvotes: { type: DataTypes.INTEGER, defaultValue: 0 },
+  isEdited: { type: DataTypes.BOOLEAN, defaultValue: false },
   // userId and postId set via associations
 });
 

@@ -1,4 +1,4 @@
-import { useState, useContext } from 'react';
+import { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/common';
 import { ThemeContext } from '../context/ThemeContext.jsx';
@@ -37,9 +37,11 @@ export default function Landing() {
   });
 
   // Redirect if already authenticated
-  if (isAuthenticated) {
-    navigate('/home', { replace: true });
-  }
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/home', { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
 
   // --- Login handler ---
   const handleLogin = async (e) => {

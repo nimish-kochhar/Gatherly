@@ -372,6 +372,37 @@ export async function createComment(postId, userId, body, parentId = null) {
 }
 
 /**
+ * Update a comment's body.
+ * Only the comment author is allowed to edit.
+ *
+ * @param {number} commentId
+ * @param {number} userId - The authenticated user's ID
+ * @param {string} newBody
+ * @returns {Promise<Object>} The updated comment with author info
+ */
+export async function updateComment(commentId, userId, newBody) {
+  const comment = await Comment.findByPk(commentId);
+  if (!comment) {
+    throw new AppError('Comment not found', 404);
+  }
+
+  if (comment.userId !== userId) {
+    throw new AppError('You can only edit your own comments', 403);
+  }
+
+  comment.body = newBody;
+  comment.isEdited = true;
+  await comment.save();
+
+  // Re-fetch with author info
+  const fullComment = await Comment.findByPk(comment.id, {
+    include: [{ model: User, attributes: ['id', 'username'] }],
+  });
+
+  return fullComment;
+}
+
+/**
  * Get all comments for a post, structured as top-level comments with nested replies.
  * Fetches all comments in a single flat query, then builds the tree in memory
  * to support arbitrary nesting depth.

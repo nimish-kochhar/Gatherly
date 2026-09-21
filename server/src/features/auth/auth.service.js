@@ -72,7 +72,13 @@ export function generateTokenPair(userId) {
 export async function refreshAccessToken(token) {
   if (!token) throw new AppError('No refresh token', 401);
 
-  const payload = jwt.verify(token, config.jwt.refreshSecret);
+  let payload;
+  try {
+    payload = jwt.verify(token, config.jwt.refreshSecret);
+  } catch {
+    throw new AppError('Invalid or expired refresh token', 401);
+  }
+
   const accessToken = jwt.sign({ userId: payload.userId }, config.jwt.accessSecret, {
     expiresIn: config.jwt.accessExpiry,
   });

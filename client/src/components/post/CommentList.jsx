@@ -5,7 +5,7 @@ import { formatCount } from '../../utils/index.js';
  * CommentList — Renders the full comments section for a post.
  * Includes header with count, loading state, empty state, and comment iteration.
  */
-export default function CommentList({ comments, commentsLoading, commentCount, postId, isAuthenticated, onReplyAdded, navigate }) {
+export default function CommentList({ comments, commentsLoading, commentCount, postId, isAuthenticated, currentUser, onReplyAdded, onCommentEdited, navigate }) {
   return (
     <div className="card">
       {/* Comments header */}
@@ -30,7 +30,9 @@ export default function CommentList({ comments, commentsLoading, commentCount, p
                 comment={comment}
                 postId={postId}
                 isAuthenticated={isAuthenticated}
+                currentUser={currentUser}
                 onReplyAdded={onReplyAdded}
+                onCommentEdited={onCommentEdited}
                 navigate={navigate}
                 depth={0}
               />

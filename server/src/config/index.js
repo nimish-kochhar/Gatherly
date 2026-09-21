@@ -41,4 +41,10 @@ export default {
     host: process.env.MEILI_HOST || '',
     apiKey: process.env.MEILI_API_KEY || '',
   },
+
+  google: {
+    clientId: process.env.GOOGLE_CLIENT_ID || '',
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+    redirectUri: process.env.GOOGLE_REDIRECT_URI || 'http://localhost:5000/api/auth/google/callback',
+  },
 };

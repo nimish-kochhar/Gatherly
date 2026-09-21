@@ -41,6 +41,9 @@ export async function login({ email, password }) {
   const user = await User.findOne({ where: { email } });
   if (!user) throw new AppError('Invalid email or password', 401);
 
+  // Google-only accounts have no password — cannot use email/password login
+  if (!user.password) throw new AppError('Invalid email or password', 401);
+
   const isMatch = await bcrypt.compare(password, user.password);
   if (!isMatch) throw new AppError('Invalid email or password', 401);
 
@@ -51,6 +54,52 @@ export async function login({ email, password }) {
     accessToken,
     refreshToken,
   };
+}
+
+/**
+ * Google OAuth login — find by googleId, link by email, or create new user.
+ */
+export async function googleLogin({ googleId, email, name }) {
+  // 1. Already linked — find by Google sub
+  let user = await User.findOne({ where: { googleId } });
+  if (user) {
+    const { accessToken, refreshToken } = generateTokenPair(user.id);
+    return { user: sanitizeUser(user), accessToken, refreshToken };
+  }
+
+  // 2. Existing account with same email — link the Google identity
+  user = await User.findOne({ where: { email } });
+  if (user) {
+    user.googleId = googleId;
+    await user.save();
+    const { accessToken, refreshToken } = generateTokenPair(user.id);
+    return { user: sanitizeUser(user), accessToken, refreshToken };
+  }
+
+  // 3. Brand-new user — create with Google identity, no password
+  //    Generate a unique username from the Google name
+  let baseUsername = (name || email.split('@')[0])
+    .toLowerCase()
+    .replace(/[^a-z0-9_]/g, '')
+    .slice(0, 20);
+  if (!baseUsername) baseUsername = 'user';
+
+  let username = baseUsername;
+  let suffix = 1;
+  while (await User.findOne({ where: { username } })) {
+    username = `${baseUsername}${suffix}`;
+    suffix++;
+  }
+
+  user = await User.create({
+    username,
+    email,
+    password: null,
+    googleId,
+  });
+
+  const { accessToken, refreshToken } = generateTokenPair(user.id);
+  return { user: sanitizeUser(user), accessToken, refreshToken };
 }
 
 /**

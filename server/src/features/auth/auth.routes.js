@@ -12,4 +12,8 @@ router.post('/refresh', authController.refresh);
 router.post('/logout', authController.logout);
 router.get('/me', authenticate, authController.me);
 
+// Google OAuth
+router.get('/google', authController.googleRedirect);
+router.get('/google/callback', authController.googleCallback);
+
 export default router;

@@ -1,5 +1,5 @@
 import { useState, useContext, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '../components/common';
 import { ThemeContext } from '../context/ThemeContext.jsx';
 import useAuth from '../hooks/useAuth.js';
@@ -26,6 +26,23 @@ export default function Landing() {
   const navigate = useNavigate();
   const { isDark, toggleTheme } = useContext(ThemeContext);
   const { login, register, isAuthenticated } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Show error from Google OAuth redirect (e.g. /?error=google_auth_failed)
+  useEffect(() => {
+    const oauthError = searchParams.get('error');
+    if (oauthError) {
+      const messages = {
+        google_auth_denied: 'Google sign-in was cancelled.',
+        google_auth_failed: 'Google sign-in failed. Please try again.',
+        google_email_not_verified: 'Your Google email is not verified.',
+      };
+      setError(messages[oauthError] || 'Authentication failed. Please try again.');
+      // Clean the query param from the URL without a navigation
+      searchParams.delete('error');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, []);
 
   // --- Form state ---
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
@@ -295,6 +312,7 @@ export default function Landing() {
               <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
+                  onClick={() => { window.location.href = '/api/auth/google'; }}
                   className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-gray-300 dark:border-surface-700 bg-white dark:bg-surface-800 hover:bg-gray-50 dark:hover:bg-surface-750 text-sm font-medium transition-all duration-200"
                 >
                   <svg className="w-5 h-5" viewBox="0 0 24 24">

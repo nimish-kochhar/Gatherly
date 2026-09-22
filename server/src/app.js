@@ -1,7 +1,10 @@
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { corsOptions } from './config/cors.js';
+import config from './config/index.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
 // Feature routes
@@ -35,7 +38,22 @@ app.use('/api/feed', feedRoutes);
 // --- Health check ---
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
 
+// --- Production: serve built React client ---
+if (config.nodeEnv === 'production') {
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const clientDist = path.resolve(__dirname, '../../client/dist');
+
+  app.use(express.static(clientDist));
+
+  // SPA fallback — any non-API GET that doesn't match a static file
+  // returns index.html so React Router can handle the route.
+  app.get('*', (_req, res) => {
+    res.sendFile(path.join(clientDist, 'index.html'));
+  });
+}
+
 // --- Error handler (must be last) ---
 app.use(errorHandler);
 
 export default app;
+

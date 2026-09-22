@@ -18,6 +18,7 @@ export default {
     name: process.env.DB_NAME || 'gatherly',
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD || '',
+    syncAlter: process.env.DB_SYNC_ALTER === 'true',
   },
 
   redis: {

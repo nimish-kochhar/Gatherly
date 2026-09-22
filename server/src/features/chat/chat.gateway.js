@@ -23,7 +23,7 @@ export function handleChatConnection(socket, chatNamespace) {
         socket.emit('error', { message: 'Not authorized to join this conversation' });
       }
     } catch (error) {
-      console.error('[Chat] Join error:', error);
+      console.error('[Chat] Join error:', error.message);
       socket.emit('error', { message: 'Failed to join conversation' });
     }
   });
@@ -47,7 +47,7 @@ export function handleChatConnection(socket, chatNamespace) {
       chatNamespace.to(`conversation_${conversationId}`).emit('receive_message', message.toJSON());
       
     } catch (error) {
-      console.error('[Chat] Error sending message:', error);
+      console.error('[Chat] Error sending message:', error.message);
       socket.emit('error', { message: 'Failed to send message' });
     }
   });

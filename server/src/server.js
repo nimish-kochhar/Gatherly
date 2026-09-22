@@ -6,6 +6,13 @@ import { setupAssociations } from './db/associations.js';
 import { createSocketServer } from './config/socket.js';
 import { registerSockets } from './sockets/index.js';
 
+// Prevent unhandled promise rejections from crashing the server.
+// These can originate from Socket.IO handlers or other async code
+// outside Express middleware. Log them but keep the process alive.
+process.on('unhandledRejection', (reason) => {
+  console.error('[Unhandled Rejection]', reason);
+});
+
 const server = http.createServer(app);
 const io = createSocketServer(server);
 
@@ -22,13 +29,18 @@ async function start() {
     console.log(`[DB] Connected to mysql://${config.db.host}:${config.db.port}/${config.db.name} as ${config.db.user}`);
 
     if (config.nodeEnv === 'development') {
-      await sequelize.sync({ alter: true });
+      if (config.db.syncAlter) {
+        console.log('[DB] Running sync with ALTER (DB_SYNC_ALTER=true)...');
+        await sequelize.sync({ alter: true });
+      } else {
+        await sequelize.sync();
+      }
       console.log('[DB] Models synced');
     }
   } catch (err) {
     console.error('[DB] Failed to connect to MySQL.');
     console.error('[DB] Verify DB_HOST, DB_PORT, DB_NAME, DB_USER, and DB_PASSWORD in .env and ensure MySQL is running.');
-    console.error('[DB] Error dcdetails:', err.message);
+    console.error('[DB] Error details:', err.message);
     process.exit(1);
   }
 
@@ -38,3 +50,4 @@ async function start() {
 }
 
 start();
+

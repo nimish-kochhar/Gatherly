@@ -8,6 +8,7 @@ export default function AuthProvider({ children }) {
   const [accessToken, setAccessToken] = useState(null);
   const [loading, setLoading] = useState(true); // true while restoring session
   const tokenRef = useRef(null);
+  const isRestoring = useRef(false);
 
   // Keep the token ref in sync so the Axios interceptor always reads the latest
   useEffect(() => {
@@ -30,6 +31,8 @@ export default function AuthProvider({ children }) {
   }, []);
 
   async function restoreSession() {
+    if (isRestoring.current) return;
+    isRestoring.current = true;
     try {
       const { data } = await api.post('/auth/refresh');
       setAccessToken(data.accessToken);
@@ -44,6 +47,7 @@ export default function AuthProvider({ children }) {
       setAccessToken(null);
     } finally {
       setLoading(false);
+      isRestoring.current = false;
     }
   }
 

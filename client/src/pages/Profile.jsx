@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { chatService } from '../services/chat.service.js';
 import { Avatar } from '../components/common';
-import PostCard from '../components/PostCard.jsx';
+import PostCard from '../components/post/PostCard.jsx';
 import KarmaBadge from '../components/profile/KarmaBadge.jsx';
 import useAuth from '../hooks/useAuth.js';
 import { communityService } from '../services/community.service.js';

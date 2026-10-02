@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import PostCard from '../components/PostCard.jsx';
-import CommunityCard from '../components/CommunityCard.jsx';
+import PostCard from '../components/post/PostCard.jsx';
+import CommunityCard from '../components/community/CommunityCard.jsx';
 import { Avatar } from '../components/common';
 import { communityService } from '../services/community.service.js';
 import { postService } from '../services/post.service.js';

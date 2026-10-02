@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import CommunityCard from '../components/CommunityCard.jsx';
+import CommunityCard from '../components/community/CommunityCard.jsx';
 import { communityService } from '../services/community.service.js';
 
 /**

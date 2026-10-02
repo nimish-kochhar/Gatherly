@@ -39,11 +39,11 @@ export default function Sidebar() {
     `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 no-underline ${
       isActive
         ? 'bg-primary-600/15 text-primary-500 dark:text-primary-400'
-        : 'text-surface-600 dark:text-surface-400 hover:bg-gray-100 dark:hover:bg-surface-800 hover:text-surface-900 dark:hover:text-surface-200'
+        : 'text-surface-600 dark:text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-800 hover:text-surface-900 dark:hover:text-surface-200'
     }`;
 
   return (
-    <aside className="w-64 shrink-0 h-[calc(100vh-3.5rem)] sticky top-14 overflow-y-auto scrollbar-thin border-r border-gray-200 dark:border-surface-700/50 bg-gray-50 dark:bg-surface-950/50">
+    <aside className="hidden lg:block w-64 shrink-0 h-[calc(100vh-3.5rem)] sticky top-14 overflow-y-auto scrollbar-thin border-r border-surface-200 dark:border-surface-700/50 bg-surface-50 dark:bg-surface-950/50">
       <div className="p-3 space-y-6">
 
         {/* ── Main Navigation ── */}
@@ -106,7 +106,7 @@ export default function Sidebar() {
                     className={navLinkClass}
                   >
                     {/* Community icon (colored circle with first letter) */}
-                    <span className="h-6 w-6 rounded-full bg-gray-200 dark:bg-surface-700 flex items-center justify-center text-xs font-bold text-surface-600 dark:text-surface-300">
+                    <span className="h-6 w-6 rounded-full bg-surface-200 dark:bg-surface-700 flex items-center justify-center text-xs font-bold text-surface-600 dark:text-surface-300">
                       {community.name[0].toUpperCase()}
                     </span>
                     <span className="truncate">g/{community.name}</span>
@@ -127,7 +127,7 @@ export default function Sidebar() {
         {/* ── Create Community CTA ── */}
         <Link
           to="/create-community"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-surface-600 dark:text-surface-400 hover:bg-gray-100 dark:hover:bg-surface-800 hover:text-surface-900 dark:hover:text-surface-200 transition-all duration-150 no-underline"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-surface-600 dark:text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-800 hover:text-surface-900 dark:hover:text-surface-200 transition-all duration-150 no-underline"
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />

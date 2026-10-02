@@ -1,8 +1,16 @@
-import { useState, useRef, useEffect, useContext } from 'react';
+import { useState, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { User, Settings, LogOut } from 'lucide-react';
 import { Avatar } from '../common';
 import { ThemeContext } from '../../context/ThemeContext.jsx';
 import useAuth from '../../hooks/useAuth.js';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from '../ui/dropdown-menu.jsx';
 
 /**
  * Navbar — Top navigation bar visible on every authenticated page.
@@ -15,22 +23,9 @@ import useAuth from '../../hooks/useAuth.js';
  */
 export default function Navbar() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const dropdownRef = useRef(null);
   const navigate = useNavigate();
   const { isDark, toggleTheme } = useContext(ThemeContext);
   const { user, logout } = useAuth();
-
-  // --- Close dropdown when clicking outside ---
-  useEffect(() => {
-    function handleClickOutside(e) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
-        setDropdownOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -41,7 +36,7 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="sticky top-0 z-40 h-14 border-b border-gray-200 dark:border-surface-700/50 bg-white/80 dark:bg-surface-950/80 backdrop-blur-xl">
+    <nav className="sticky top-0 z-40 h-14 border-b border-surface-200 dark:border-surface-700/50 bg-white/80 dark:bg-surface-950/80 backdrop-blur-xl">
       <div className="flex items-center justify-between h-full px-4 max-w-[1400px] mx-auto">
 
         {/* ── Logo ── */}
@@ -70,7 +65,7 @@ export default function Navbar() {
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search Gatherly..."
               className="w-full pl-10 pr-4 py-2 text-sm rounded-full
-                bg-gray-100 dark:bg-surface-800 border border-gray-300 dark:border-surface-700
+                bg-surface-100 dark:bg-surface-800 border border-surface-300 dark:border-surface-700
                 text-surface-900 dark:text-surface-100 placeholder:text-surface-500
                 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500
                 transition-all duration-200"
@@ -130,62 +125,52 @@ export default function Navbar() {
             </svg>
           </Link>
 
-          {/* User avatar + dropdown */}
-          <div className="relative ml-1" ref={dropdownRef}>
-            <button
-              onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="interactive rounded-full"
-            >
-              <Avatar name={user?.username || 'User'} size="sm" status="online" />
-            </button>
+          {/* User avatar + Radix dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="interactive rounded-full ml-1">
+                <Avatar name={user?.username || 'User'} size="sm" status="online" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              {/* User info header */}
+              <div className="px-4 py-2 border-b border-surface-200 dark:border-surface-700">
+                <p className="text-sm font-medium">{user?.username || 'User'}</p>
+                <p className="text-xs text-secondary">@{user?.username || 'user'}</p>
+              </div>
 
-            {/* Dropdown menu */}
-            {dropdownOpen && (
-              <div className="absolute right-0 mt-2 w-56 py-2 bg-white dark:bg-surface-850 border border-gray-200 dark:border-surface-700 rounded-xl shadow-xl animate-fade-in-down z-50">
-                {/* User info */}
-                <div className="px-4 py-2 border-b border-gray-200 dark:border-surface-700">
-                  <p className="text-sm font-medium">{user?.username || 'User'}</p>
-                  <p className="text-xs text-secondary">@{user?.username || 'user'}</p>
-                </div>
-
-                <div className="py-1">
+              <div className="py-1">
+                <DropdownMenuItem asChild>
                   <Link
                     to={`/profile/${user?.username || 'me'}`}
-                    className="flex items-center gap-3 px-4 py-2 text-sm text-surface-600 dark:text-surface-300 hover:bg-gray-100 dark:hover:bg-surface-800 hover:text-surface-900 dark:hover:text-surface-100 no-underline"
-                    onClick={() => setDropdownOpen(false)}
+                    className="no-underline"
                   >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
+                    <User className="w-4 h-4" aria-hidden="true" />
                     Profile
                   </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
                   <Link
                     to="/settings"
-                    className="flex items-center gap-3 px-4 py-2 text-sm text-surface-600 dark:text-surface-300 hover:bg-gray-100 dark:hover:bg-surface-800 hover:text-surface-900 dark:hover:text-surface-100 no-underline"
-                    onClick={() => setDropdownOpen(false)}
+                    className="no-underline"
                   >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
+                    <Settings className="w-4 h-4" aria-hidden="true" />
                     Settings
                   </Link>
-                </div>
-
-                <div className="border-t border-gray-200 dark:border-surface-700 pt-1">
-                  <button
-                    className="flex items-center gap-3 w-full px-4 py-2 text-sm text-danger-400 hover:bg-gray-100 dark:hover:bg-surface-800"
-                    onClick={() => { setDropdownOpen(false); logout(); navigate('/'); }}
-                  >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                    </svg>
-                    Log Out
-                  </button>
-                </div>
+                </DropdownMenuItem>
               </div>
-            )}
-          </div>
+
+              <DropdownMenuSeparator />
+
+              <DropdownMenuItem
+                onSelect={() => { logout(); navigate('/'); }}
+                className="text-danger-400 focus:text-danger-400"
+              >
+                <LogOut className="w-4 h-4" aria-hidden="true" />
+                Log Out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </nav>

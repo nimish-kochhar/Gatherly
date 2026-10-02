@@ -1,6 +1,6 @@
 import { useState, useEffect, useContext } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import PostCard from '../components/PostCard.jsx';
+import PostCard from '../components/post/PostCard.jsx';
 import { Button } from '../components/common';
 import { communityService } from '../services/community.service.js';
 import { postService } from '../services/post.service.js';
